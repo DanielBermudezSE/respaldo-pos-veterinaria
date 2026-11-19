@@ -1,0 +1,108 @@
+{
+  "prueba": "Pruebas funcionales, de integración y de seguridad",
+  "casos": [
+    {
+      "caso": "Admin ajusta stock por conteo físico",
+      "esperado": "200",
+      "obtenido": "200",
+      "ok": true
+    },
+    {
+      "caso": "Listar inventario",
+      "esperado": "15 productos desde NUBE",
+      "obtenido": "15 productos desde NUBE",
+      "ok": true
+    },
+    {
+      "caso": "Cajero registra una venta de 3 unidades",
+      "esperado": "201 en NUBE",
+      "obtenido": "201 en NUBE",
+      "ok": true
+    },
+    {
+      "caso": "El stock en la nube se descuenta",
+      "esperado": "97",
+      "obtenido": "97",
+      "ok": true
+    },
+    {
+      "caso": "Venta con ítems repetidos se agrupa",
+      "esperado": "total 30000.00",
+      "obtenido": "30000.00",
+      "ok": true
+    },
+    {
+      "caso": "Venta sin stock suficiente es rechazada",
+      "esperado": "409",
+      "obtenido": "409",
+      "ok": true
+    },
+    {
+      "caso": "Idempotencia: reenviar la misma venta no la duplica",
+      "esperado": "1 venta, 2ª respuesta duplicada=True",
+      "obtenido": "1 venta, duplicada=True",
+      "ok": true
+    },
+    {
+      "caso": "Admin cambia precio",
+      "esperado": "12500.00",
+      "obtenido": "12500.00",
+      "ok": true
+    },
+    {
+      "caso": "Integración: el cambio se replica al servidor LOCAL",
+      "esperado": "< 5 s",
+      "obtenido": "1.24 s",
+      "ok": true
+    },
+    {
+      "caso": "Integración: el notificador publica el cambio a Rappi/WooCommerce",
+      "esperado": "< 5 s",
+      "obtenido": "0.05 s",
+      "ok": true
+    },
+    {
+      "caso": "Seguridad: venta sin token",
+      "esperado": "401",
+      "obtenido": "401",
+      "ok": true
+    },
+    {
+      "caso": "Seguridad: token manipulado",
+      "esperado": "401",
+      "obtenido": "401",
+      "ok": true
+    },
+    {
+      "caso": "Autorización: cajero no puede cambiar precios",
+      "esperado": "403",
+      "obtenido": "403",
+      "ok": true
+    },
+    {
+      "caso": "Seguridad: login con clave incorrecta",
+      "esperado": "401",
+      "obtenido": "401",
+      "ok": true
+    },
+    {
+      "caso": "Validación: SKU con inyección SQL es rechazado",
+      "esperado": "422",
+      "obtenido": "422",
+      "ok": true
+    },
+    {
+      "caso": "Validación: cantidad negativa es rechazada",
+      "esperado": "422",
+      "obtenido": "422",
+      "ok": true
+    },
+    {
+      "caso": "Validación: precio no numérico es rechazado",
+      "esperado": "422",
+      "obtenido": "422",
+      "ok": true
+    }
+  ],
+  "datos": {}
+}

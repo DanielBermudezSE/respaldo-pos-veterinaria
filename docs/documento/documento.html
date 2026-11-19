@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Documento técnico - Servidor de respaldo distribuido para el POS de una veterinaria</title>
+<style>
+  @page { size: Letter; margin: 2.54cm; }
+  body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 2; color: #000; }
+  p { margin: 0; text-indent: 1.27cm; text-align: left; }
+  p.ni { text-indent: 0; }
+  h1, h2, h3 { font-size: 12pt; margin: 0; line-height: 2; }
+  h1 { text-align: center; font-weight: bold; page-break-before: always; }
+  h1.nobreak { page-break-before: auto; }
+  h2 { text-align: left; font-weight: bold; }
+  h3 { text-align: left; font-weight: bold; font-style: italic; }
+  .portada { text-align: center; page-break-after: always; padding-top: 3.2cm; }
+  .portada p { text-indent: 0; text-align: center; }
+  .portada .titulo { font-weight: bold; margin-bottom: 1.2cm; }
+  ul, ol { margin: 0 0 0 1.27cm; padding-left: 0.6cm; }
+  li { margin: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 10.5pt; line-height: 1.3; margin: 6pt 0 14pt; page-break-inside: avoid; }
+  th, td { padding: 4pt 6pt; vertical-align: top; text-align: left; }
+  thead th { border-top: 1px solid #000; border-bottom: 1px solid #000; }
+  tbody tr:last-child td { border-bottom: 1px solid #000; }
+  .tabla-num { font-weight: bold; text-indent: 0; margin-top: 10pt; }
+  .tabla-tit { font-style: italic; text-indent: 0; }
+  .nota { font-size: 10.5pt; line-height: 1.4; text-indent: 0; margin-bottom: 10pt; }
+  figure { margin: 6pt 0 12pt; page-break-inside: avoid; }
+  figure img { width: 88%; display:block; margin:4pt auto; border: 1px solid #bbb; }
+  pre { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; line-height: 1.3; background: #f5f5f5;
+        border: 1px solid #ccc; padding: 6pt 8pt; white-space: pre-wrap; page-break-inside: avoid; margin: 4pt 0 12pt; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 10.5pt; }
+  .ref p { padding-left: 1.27cm; text-indent: -1.27cm; }
+  .toc p { text-indent: 0; }
+  .toc .s { padding-left: 1.27cm; }
+  .ok { color: #000; }
+</style>
+</head>
+<body>
+
+<!-- ============================ PORTADA ============================ -->
+<section class="portada">
+  <p class="titulo">Diseño e Implementación de un Servidor de Respaldo Distribuido para el Sistema POS<br>de una Veterinaria con Tolerancia a Fallos y Sincronización con la Nube</p>
+  <p>[NOMBRE DEL ESTUDIANTE]</p>
+  <p>Universidad Manuela Beltrán</p>
+  <p>Sistemas Distribuidos</p>
+  <p>Ing. Juan José Osorio Tabares</p>
+  <p>18 de noviembre de 2026</p>
+</section>
+
+<!-- ============================ CONTENIDO ============================ -->
+<h1 class="nobreak">Tabla de Contenido</h1>
+<div class="toc">
+<p>1. Introducción</p>
+<p>2. Planteamiento del problema</p>
+<p>3. Justificación</p>
+<p>4. Objetivos</p>
+<p>5. Marco conceptual</p>
+<p>6. Análisis de requisitos</p>
+<p>7. Diseño de la arquitectura distribuida</p>
+<p>8. Diseño de componentes y comunicación</p>
+<p>9. Desarrollo e implementación</p>
+<p>10. Tolerancia a fallos y recuperación</p>
+<p>11. Seguridad del sistema</p>
+<p>12. Pruebas y evaluación</p>
+<p>13. Despliegue y ejecución</p>
+<p>14. Resultados y análisis</p>
+<p>15. Presupuesto</p>
+<p>16. Conclusiones</p>
+<p>Referencias</p>
+<p>Anexos</p>
+</div>
+
+<!-- ============================ 1 ============================ -->
+<h1>Introducción</h1>
+<p>Una veterinaria con tienda física vende productos y servicios por tres canales: el punto de venta (POS) del local, una tienda en línea construida sobre WooCommerce y la plataforma de domicilios Rappi. Los tres canales comparten la misma información de inventario y precios, almacenada en una base de datos MariaDB alojada en un servidor privado virtual (VPS) contratado con el proveedor Vultr. En la tienda física, el software comercial de punto de venta modifica constantemente esa información: cada factura descuenta existencias y el administrador ajusta precios. Un script que corre en el VPS detecta esos cambios y los publica en la API oficial de Rappi y en la tienda web.</p>
+<p>Esta arquitectura centralizada tiene un punto único de falla. Si el VPS deja de responder, o si la tienda pierde la conexión a internet, el punto de venta no puede consultar precios ni registrar ventas, y la operación del local se detiene. El presente proyecto propone y construye una solución basada en los principios de los sistemas distribuidos: un servidor de respaldo físico ubicado en la tienda, que mantiene una réplica de la base de datos, al que el POS conmuta automáticamente cuando la nube no está disponible, y que sincroniza las operaciones con la nube cuando la conexión se restablece.</p>
+<p>Como la información real del negocio es sensible (credenciales de acceso, direcciones de servidores, datos de clientes y ventas) y la guía del proyecto exige publicar el código en un repositorio público, la solución se implementó como una simulación fiel con contenedores Docker y datos ficticios. La simulación reproduce los nodos reales (VPS y servidor local), los canales externos y las fallas de red. El POS comercial se representa con un servicio propio que expone las mismas operaciones de negocio. Según Tanenbaum y van Steen (2017), un sistema distribuido debe ocultar a sus usuarios la ubicación y las fallas de sus componentes; ese es precisamente el objetivo de la solución: que el cajero siga vendiendo sin percibir que la nube dejó de estar disponible.</p>
+
+<!-- ============================ 2 ============================ -->
+<h1>Planteamiento del Problema</h1>
+<p>El negocio depende por completo de un único servidor remoto. El POS de la tienda física es el canal con mayor volumen de transacciones y el único donde se factura físicamente la mercancía, pero no tiene ninguna capacidad de operar de forma autónoma: toda lectura de precios y toda escritura de inventario viaja por internet hasta el VPS.</p>
+<p>Las causas de la problemática son las siguientes:</p>
+<ul>
+  <li>La conexión a internet de la tienda es un servicio residencial o de pequeña empresa sin redundancia, sujeto a cortes por mantenimiento, fallas del proveedor o del cableado.</li>
+  <li>El VPS es una única máquina virtual. Reinicios, mantenimientos del proveedor, saturación de recursos o errores de configuración lo dejan inaccesible.</li>
+  <li>No existe una copia local de los datos que permita seguir operando, ni un mecanismo que reconcilie automáticamente lo vendido durante la interrupción.</li>
+</ul>
+<p>Las dificultades derivadas son concretas. Durante un corte no se puede facturar, por lo que se pierden ventas o se registran a mano para digitarlas después, con riesgo de errores. Además, el inventario de la nube queda desactualizado, de modo que Rappi y la tienda web pueden ofrecer productos que ya se vendieron en el local. Finalmente, no queda trazabilidad de qué operaciones se hicieron durante la falla.</p>
+<p>La solución propuesta contribuye a resolver el problema introduciendo un segundo nodo de datos en la tienda y una capa de software que detecta la falla, conmuta al nodo local, conserva cada operación en una cola persistente y la reenvía a la nube de forma segura e idempotente cuando la conexión vuelve. De esta manera, la tienda física sigue facturando y los demás canales reciben el inventario correcto apenas se restablece la comunicación.</p>
+<p class="ni"><b>Pregunta problema:</b> ¿cómo garantizar que el punto de venta de la veterinaria continúe operando ante la caída del servidor en la nube o la pérdida de conectividad, manteniendo la consistencia del inventario entre la tienda física, Rappi y la tienda web?</p>
+
+<!-- ============================ 3 ============================ -->
+<h1>Justificación</h1>
+<p>Cada hora sin facturar representa ingresos perdidos y clientes insatisfechos, especialmente en una veterinaria, donde se venden medicamentos y alimentos que el cliente necesita en el momento. El proyecto se justifica porque reduce ese riesgo con una inversión baja: reutiliza un computador que el negocio ya tiene y emplea exclusivamente software libre (MariaDB, Python, FastAPI y Docker).</p>
+<p>Los beneficios esperados son los siguientes:</p>
+<ul>
+  <li><b>Continuidad del negocio:</b> el POS sigue vendiendo y cambiando precios aunque no haya nube ni internet.</li>
+  <li><b>Integridad de los datos:</b> ninguna venta se pierde ni se duplica, gracias a la cola persistente y a la idempotencia.</li>
+  <li><b>Consistencia entre canales:</b> al volver la conexión, la nube recibe las ventas de la tienda y Rappi y WooCommerce se actualizan automáticamente.</li>
+  <li><b>Trazabilidad:</b> una bitácora registra cada conmutación, sincronización y conflicto.</li>
+  <li><b>Mejor desempeño local:</b> en modo respaldo las operaciones tardan unos 35 ms, frente a los 130 ms del acceso a la nube.</li>
+</ul>
+<p>Frente a una solución centralizada, el enfoque distribuido elimina el punto único de falla mediante redundancia de datos y de rutas de acceso. Kleppmann (2017) señala que la replicación permite mantener el sistema disponible aunque algunas de sus partes fallen y acercar los datos a los usuarios para reducir la latencia; ambos beneficios aplican aquí. El costo de esta decisión es aceptar una consistencia eventual durante las interrupciones, que se gestiona con reglas explícitas de resolución de conflictos (Vogels, 2009).</p>
+
+<!-- ============================ 4 ============================ -->
+<h1>Objetivos</h1>
+<h2>Objetivo General</h2>
+<p>Diseñar, implementar y evaluar un sistema distribuido de respaldo que permita al punto de venta de la veterinaria continuar operando ante la caída del servidor en la nube o la pérdida de conectividad, sincronizando automáticamente el inventario y los precios con la base de datos central cuando el servicio se restablezca.</p>
+<h2>Objetivos Específicos</h2>
+<ol>
+  <li>Analizar la arquitectura actual del negocio e identificar sus puntos únicos de falla y los requisitos funcionales y no funcionales de la solución.</li>
+  <li>Diseñar una arquitectura distribuida de dos nodos de datos (nube y local) con mecanismos de failover, replicación y sincronización.</li>
+  <li>Implementar los servicios POS, de sincronización y de simulación de canales, con comunicación mediante API REST y SQL/TCP, desplegados en contenedores Docker.</li>
+  <li>Incorporar mecanismos de tolerancia a fallos (timeouts, reintentos con backoff, circuit breaker, patrón Outbox e idempotencia) y de seguridad (JWT, roles, validación de entradas).</li>
+  <li>Verificar la solución con pruebas unitarias, funcionales, de integración, de concurrencia, de rendimiento y de tolerancia a fallos, y comparar los resultados con los requisitos establecidos.</li>
+  <li>Documentar la instalación, la ejecución y el presupuesto de la solución.</li>
+</ol>
+
+<!-- ============================ 5 ============================ -->
+<h1>Marco Conceptual</h1>
+<h2>Sistemas Distribuidos</h2>
+<p>Un sistema distribuido es “una colección de elementos de cómputo autónomos que se presenta a sus usuarios como un único sistema coherente” (Tanenbaum &amp; van Steen, 2017, p. 2). Sus componentes se comunican y coordinan exclusivamente mediante el paso de mensajes a través de una red (Coulouris et al., 2012). En este proyecto, los nodos autónomos son el VPS en la nube, el servidor de la tienda y los servicios que corren en ellos; el usuario (el cajero) interactúa con un único panel sin necesidad de saber qué nodo atiende su operación, lo que se conoce como transparencia de ubicación y de fallas.</p>
+<h2>Arquitectura Cliente-Servidor</h2>
+<p>En el modelo cliente-servidor, los procesos clientes solicitan servicios a procesos servidores que gestionan un recurso compartido (Coulouris et al., 2012). La solución emplea este modelo en dos niveles: el navegador del cajero es cliente del servicio POS mediante HTTP, y el servicio POS es a su vez cliente de los servidores de bases de datos MariaDB mediante el protocolo SQL sobre TCP. El estilo de la API sigue los principios REST de recursos identificados por URL y operaciones sin estado (Fielding, 2000).</p>
+<h2>Microservicios</h2>
+<p>Los microservicios son servicios pequeños, desplegables de forma independiente y modelados alrededor de una capacidad de negocio (Newman, 2021). La solución se divide en tres servicios con responsabilidades separadas: el POS atiende las operaciones de venta, el servicio de sincronización replica y reconcilia los datos, y el servicio de canales simula los sistemas externos. Cada uno corre en su propio contenedor y puede reiniciarse sin afectar a los demás.</p>
+<h2>Comunicación entre Procesos</h2>
+<p>Los procesos de un sistema distribuido se comunican mediante protocolos de solicitud-respuesta, mensajería o flujos de eventos (Tanenbaum &amp; van Steen, 2017). En el proyecto se utilizan solicitudes síncronas HTTP/JSON entre el navegador y el POS, conexiones TCP persistentes con el protocolo de MariaDB entre los servicios y las bases de datos, y una comunicación asíncrona basada en una cola persistente (tabla <code>cola_sincronizacion</code>), que desacopla en el tiempo al productor (el POS) del consumidor (el servicio de sincronización). Este último mecanismo corresponde al patrón Transactional Outbox, que garantiza que una operación de negocio y el mensaje que la anuncia se guarden en la misma transacción atómica (Richardson, 2018).</p>
+<h2>Concurrencia y Sincronización</h2>
+<p>Cuando varios procesos acceden simultáneamente a datos compartidos, se requieren mecanismos de control de concurrencia para preservar la consistencia (Coulouris et al., 2012). El sistema usa transacciones ACID de InnoDB con bloqueo pesimista de filas (<code>SELECT … FOR UPDATE</code>), de modo que dos cajas o un cajero y Rappi no puedan vender la misma última unidad. Para evitar interbloqueos, los productos de una venta se bloquean siempre en el mismo orden. El orden de los eventos entre nodos se preserva procesando la cola por fecha de creación, en línea con la noción de orden causal de Lamport (1978).</p>
+<h2>Tolerancia a Fallos</h2>
+<p>La tolerancia a fallos es la capacidad de un sistema de seguir prestando un servicio correcto en presencia de fallas (Avizienis et al., 2004). Se logra mediante redundancia y mecanismos de detección y recuperación. Entre los patrones aplicados están los tiempos de espera (timeouts), que evitan que un proceso quede bloqueado esperando a un nodo caído; los reintentos con espera exponencial (backoff); y el circuit breaker, que deja de invocar temporalmente un servicio que falla repetidamente para responder rápido y darle tiempo de recuperarse (Fowler, 2014; Nygard, 2018). La replicación de datos permite además mantener la disponibilidad cuando un nodo falla (Kleppmann, 2017).</p>
+<p>El teorema CAP establece que, ante una partición de red, un sistema distribuido debe elegir entre consistencia y disponibilidad (Brewer, 2012). Este proyecto elige la disponibilidad para el POS durante la partición y recupera la consistencia después, un modelo conocido como consistencia eventual (Vogels, 2009).</p>
+<h2>Computación en la Nube</h2>
+<p>El Instituto Nacional de Estándares y Tecnología de Estados Unidos define la computación en la nube como un modelo que permite el acceso ubicuo y bajo demanda a un conjunto compartido de recursos configurables que se aprovisionan y liberan rápidamente (Mell &amp; Grance, 2011). El VPS de Vultr es un servicio de infraestructura como servicio (IaaS). La solución combina este recurso en la nube con un nodo en las instalaciones del cliente, lo que constituye una arquitectura híbrida o de borde (edge), en la que el procesamiento crítico se mantiene cerca del usuario.</p>
+<h2>Seguridad en Sistemas Distribuidos</h2>
+<p>Al comunicar componentes a través de redes, aumenta la superficie de ataque: los mensajes pueden ser interceptados o modificados, y las interfaces expuestas pueden ser abusadas (Coulouris et al., 2012). Las interfaces de programación (API) concentran riesgos como la autenticación rota, la autorización deficiente a nivel de función y la falta de validación de entradas (OWASP Foundation, 2023). La solución emplea JSON Web Tokens firmados (Jones et al., 2015) para autenticar a los usuarios, control de acceso basado en roles, validación estricta de los datos de entrada, consultas parametrizadas contra la inyección SQL y gestión de secretos fuera del código fuente.</p>
+<h2>Contenedores</h2>
+<p>Docker empaqueta una aplicación con todas sus dependencias en una imagen que se ejecuta de forma aislada y reproducible sobre cualquier anfitrión (Merkel, 2014). Docker Compose permite declarar varios contenedores, sus redes y volúmenes en un único archivo, lo que facilita simular una topología distribuida completa en un solo equipo.</p>
+
+<!-- ============================ 6 ============================ -->
+<h1>Análisis de Requisitos</h1>
+<h2>Requisitos Funcionales</h2>
+<p class="tabla-num">Tabla 1</p>
+<p class="tabla-tit">Requisitos funcionales</p>
+<table>
+<thead><tr><th>ID</th><th>Requisito</th></tr></thead>
+<tbody>
+<tr><td>RF-01</td><td>El POS debe permitir consultar el inventario (SKU, nombre, precio, existencias).</td></tr>
+<tr><td>RF-02</td><td>El POS debe registrar ventas de uno o varios productos y descontar las existencias.</td></tr>
+<tr><td>RF-03</td><td>El administrador debe poder cambiar precios y ajustar existencias por conteo físico.</td></tr>
+<tr><td>RF-04</td><td>El sistema debe detectar automáticamente la indisponibilidad de la base de datos en la nube y operar con el servidor local.</td></tr>
+<tr><td>RF-05</td><td>Las operaciones realizadas sin conexión deben almacenarse en una cola persistente.</td></tr>
+<tr><td>RF-06</td><td>Al restablecerse la conexión, las operaciones pendientes deben enviarse a la nube en orden y sin duplicados.</td></tr>
+<tr><td>RF-07</td><td>El servidor local debe mantener una réplica actualizada de los productos de la nube, incluidas las ventas de Rappi y de la web.</td></tr>
+<tr><td>RF-08</td><td>Los cambios de inventario y precio deben notificarse a Rappi y WooCommerce.</td></tr>
+<tr><td>RF-09</td><td>El sistema debe mostrar el nodo activo, el estado del circuit breaker, las operaciones pendientes y una bitácora de eventos.</td></tr>
+<tr><td>RF-10</td><td>Ante un conflicto, el POS prevalece: sus ventas siempre se aplican y sus precios sobrescriben los de la nube.</td></tr>
+</tbody></table>
+
+<h2>Requisitos No Funcionales</h2>
+<p class="tabla-num">Tabla 2</p>
+<p class="tabla-tit">Requisitos no funcionales</p>
+<table>
+<thead><tr><th>ID</th><th>Categoría</th><th>Requisito y criterio de aceptación</th></tr></thead>
+<tbody>
+<tr><td>RNF-01</td><td>Disponibilidad</td><td>El POS debe seguir vendiendo si falla la nube o internet (failover &lt; 10 s).</td></tr>
+<tr><td>RNF-02</td><td>Rendimiento</td><td>p95 de consulta de inventario &lt; 500 ms; p95 de registro de venta &lt; 1 000 ms.</td></tr>
+<tr><td>RNF-03</td><td>Recuperación</td><td>Sincronización completa en menos de 60 s tras restablecer la conexión.</td></tr>
+<tr><td>RNF-04</td><td>Integridad</td><td>Cero ventas perdidas o duplicadas; sin existencias negativas por concurrencia.</td></tr>
+<tr><td>RNF-05</td><td>Seguridad</td><td>Toda escritura requiere autenticación; cambiar precios requiere rol administrador; entradas validadas.</td></tr>
+<tr><td>RNF-06</td><td>Escalabilidad</td><td>Arquitectura en contenedores que permita agregar cajas (clientes) o sedes (nodos locales).</td></tr>
+<tr><td>RNF-07</td><td>Mantenibilidad</td><td>Configuración por variables de entorno y despliegue con un solo comando.</td></tr>
+</tbody></table>
+
+<h2>Requisitos Técnicos</h2>
+<p class="tabla-num">Tabla 3</p>
+<p class="tabla-tit">Requisitos técnicos</p>
+<table>
+<thead><tr><th>Elemento</th><th>Tecnología</th></tr></thead>
+<tbody>
+<tr><td>Lenguaje</td><td>Python 3.12</td></tr>
+<tr><td>Framework de API</td><td>FastAPI 0.115, Uvicorn 0.34, Pydantic 2</td></tr>
+<tr><td>Base de datos</td><td>MariaDB 11.4 (motor InnoDB), conector PyMySQL 1.1</td></tr>
+<tr><td>Seguridad</td><td>PyJWT 2.10 (HS256)</td></tr>
+<tr><td>Contenedores</td><td>Docker Engine 26, Docker Compose v2</td></tr>
+<tr><td>Pruebas</td><td>pytest, requests, ThreadPoolExecutor, Playwright (capturas)</td></tr>
+<tr><td>Infraestructura real</td><td>VPS Vultr (nube), computador HP todo en uno (servidor local), internet de la tienda</td></tr>
+<tr><td>Control de versiones</td><td>Git y GitHub</td></tr>
+</tbody></table>
+
+<!-- ============================ 7 ============================ -->
+<h1>Diseño de la Arquitectura Distribuida</h1>
+<p>La arquitectura se compone de dos zonas de red. La zona <i>internet</i> representa el VPS en la nube, donde residen la base de datos principal (<code>vet-nube</code>) y los canales en línea (tienda web y Rappi), que solo pueden comunicarse con la nube. La zona <i>tienda</i> representa la red local del negocio, donde residen el servidor de respaldo (<code>vet-local</code>). Los servicios POS y de sincronización están conectados a ambas zonas, porque son el puente entre ellas. La Figura 1 presenta el diagrama de arquitectura.</p>
+<figure><p class="tabla-num">Figura 1</p>
+<p class="tabla-tit">Diagrama de arquitectura de la solución</p>
+<img src="../diagrama_arquitectura.png" alt="Diagrama de arquitectura">
+<p class="nota"><i>Nota.</i> Las líneas continuas muestran el acceso del POS a cada nodo según el modo de operación; las punteadas, el flujo de sincronización. Elaboración propia.</p></figure>
+<p>El sistema funciona en tres modos:</p>
+<ol>
+  <li><b>Modo normal:</b> el POS lee y escribe en la nube. Cada 2 segundos, el servicio de sincronización copia al nodo local los productos modificados, por ejemplo por ventas de Rappi o de la web. El notificador del VPS publica los cambios en los canales externos.</li>
+  <li><b>Modo respaldo:</b> cuando el POS detecta que la nube no responde, el circuit breaker se abre y las operaciones se ejecutan en el nodo local. Cada operación se guarda además en la cola de sincronización dentro de la misma transacción.</li>
+  <li><b>Modo recuperación:</b> el servicio de sincronización detecta que la nube volvió, envía las operaciones pendientes en orden y de forma idempotente, y luego reanuda la réplica nube → local. Cuando la cola queda vacía y la nube responde, el POS vuelve a operar con la nube.</li>
+</ol>
+<p>En la topología real, el nodo en la nube corresponde al VPS de Vultr y el nodo local al computador HP todo en uno de la tienda. La simulación conserva exactamente esa separación mediante dos redes Docker independientes; desconectar la red <i>internet</i> reproduce un corte del servicio de internet de la tienda, y detener el contenedor <code>vet-nube</code> reproduce una caída del VPS.</p>
+
+<!-- ============================ 8 ============================ -->
+<h1>Diseño de Componentes y Comunicación</h1>
+<h2>Componentes</h2>
+<p class="tabla-num">Tabla 4</p>
+<p class="tabla-tit">Componentes y responsabilidades</p>
+<table>
+<thead><tr><th>Componente</th><th>Responsabilidades</th></tr></thead>
+<tbody>
+<tr><td>Servicio POS (<code>vet-pos</code>)</td><td>API REST de ventas, precios e inventario; autenticación y autorización; enrutamiento NUBE/LOCAL con circuit breaker, timeouts y reintentos; control de concurrencia; encolado Outbox; panel web.</td></tr>
+<tr><td>Servicio de sincronización (<code>vet-sync</code>)</td><td>PUSH de la cola local a la nube (idempotente, en orden, con dead letter para errores de datos); PULL de productos nube → local por marca de agua; registro de conflictos; backoff exponencial.</td></tr>
+<tr><td>Servicio de canales (<code>vet-canales</code>)</td><td>Simula ventas de WooCommerce y Rappi directamente en la nube y el script notificador que publica los cambios de stock y precio.</td></tr>
+<tr><td>MariaDB NUBE (<code>vet-nube</code>)</td><td>Fuente de verdad compartida por los tres canales.</td></tr>
+<tr><td>MariaDB LOCAL (<code>vet-local</code>)</td><td>Réplica de respaldo, cola de sincronización, bitácora y estado de la sincronización.</td></tr>
+<tr><td>Panel web</td><td>Interfaz del cajero: inventario, ventas, cambio de precios, estado del sistema y bitácora en tiempo real.</td></tr>
+</tbody></table>
+
+<h2>Modelo de Datos</h2>
+<p>Ambos nodos comparten el mismo esquema: <code>productos</code> (SKU, nombre, categoría, precio, stock, versión y fecha de actualización), <code>ventas</code> (identificador UUID, canal, nodo de origen y total), <code>venta_items</code>, <code>movimientos</code> (auditoría de ventas, cambios de precio y ajustes, con identificador único que permite la idempotencia), <code>cola_sincronizacion</code> (Outbox), <code>notificaciones_canales</code>, <code>bitacora</code> y <code>estado_sync</code>. El esquema completo está en el archivo <code>db/init/01_esquema.sql</code> del repositorio.</p>
+
+<h2>Mecanismos de Comunicación</h2>
+<p class="tabla-num">Tabla 5</p>
+<p class="tabla-tit">Interfaz REST del servicio POS</p>
+<table>
+<thead><tr><th>Método y ruta</th><th>Descripción</th><th>Acceso</th></tr></thead>
+<tbody>
+<tr><td>POST /api/login</td><td>Autentica y entrega un token JWT</td><td>Público</td></tr>
+<tr><td>GET /api/productos</td><td>Lista el inventario e indica el nodo que respondió</td><td>Público en la LAN</td></tr>
+<tr><td>POST /api/ventas</td><td>Registra una venta (admite clave de idempotencia)</td><td>Cajero, admin</td></tr>
+<tr><td>PUT /api/productos/{sku}/precio</td><td>Cambia el precio de un producto</td><td>Admin</td></tr>
+<tr><td>PUT /api/productos/{sku}/stock</td><td>Ajusta existencias por conteo físico</td><td>Admin</td></tr>
+<tr><td>GET /api/estado</td><td>Nodo activo, circuit breaker y pendientes</td><td>Público en la LAN</td></tr>
+<tr><td>GET /api/eventos, /api/canales</td><td>Bitácora y actividad de Rappi/Web</td><td>Público en la LAN</td></tr>
+</tbody></table>
+<p>Además de la API REST, los servicios se comunican con las bases de datos por SQL sobre TCP (puerto 3306) y entre sí de forma asíncrona a través de la cola persistente: el POS produce eventos y el servicio de sincronización los consume. Esta comunicación indirecta desacopla ambos procesos, de modo que el POS no necesita que la nube ni el sincronizador estén disponibles para completar una venta.</p>
+
+<!-- ============================ 9 ============================ -->
+<h1>Desarrollo e Implementación</h1>
+<p>La solución se desarrolló en Python por su legibilidad y su ecosistema para servicios web. El repositorio se organiza en carpetas por servicio (<code>pos/</code>, <code>sync/</code>, <code>canales/</code>), un módulo común (<code>comun/</code>) con la conexión a los nodos, los reintentos y la bitácora, los scripts SQL de inicialización (<code>db/init/</code>), las pruebas (<code>pruebas/</code>) y la documentación (<code>docs/</code>). A continuación se presentan los fragmentos de código más relevantes.</p>
+<h2>Enrutamiento con Failover</h2>
+<p>La función <code>ejecutar</code> del POS decide en qué nodo se ejecuta cada operación. Si el circuit breaker lo permite, intenta la nube con reintentos; ante un error de comunicación registra la falla y ejecuta la misma operación en el nodo local.</p>
+<pre>def ejecutar(operacion, escritura: bool):
+    motivo = ""
+    if escritura and pendientes_locales() > 0:
+        motivo = "Hay operaciones pendientes de sincronizar."   # conserva el orden de los eventos
+    elif breaker.permitir():
+        try:
+            r = con_reintentos(lambda: transaccion("NUBE", lambda c: operacion(c, "NUBE")), intentos=2)
+            breaker.exito(); _registrar_nodo("NUBE")
+            return r, "NUBE"
+        except ERRORES_CONEXION as e:
+            breaker.fallo()
+            motivo = f"Nube no disponible ({type(e).__name__})."
+    else:
+        motivo = "Circuit breaker ABIERTO."
+    try:
+        r = transaccion("LOCAL", lambda c: operacion(c, "LOCAL"))
+    except ERRORES_CONEXION:
+        raise HTTPException(503, "Ningún nodo de base de datos está disponible")
+    _registrar_nodo("LOCAL", motivo)
+    return r, "LOCAL"</pre>
+<h2>Venta con Control de Concurrencia y Outbox</h2>
+<pre>for sku in sorted(cantidades):                       # orden fijo: evita interbloqueos
+    c.execute("SELECT sku, precio, stock FROM productos WHERE sku=%s FOR UPDATE", (sku,))
+    p = c.fetchone()
+    if p["stock"] &lt; cantidades[sku]:
+        raise HTTPException(409, f"Stock insuficiente para {sku}")
+    c.execute("UPDATE productos SET stock = stock - %s, version = version + 1 WHERE sku=%s", ...)
+...
+if nodo == "LOCAL":   # misma transacción que la venta: patrón Transactional Outbox
+    encolar(c, venta_id, "VENTA", {"venta_id": venta_id, "items": detalle, ...})</pre>
+<h2>Aplicación Idempotente en la Nube</h2>
+<pre>def aplicar_venta(c, ev):
+    c.execute("INSERT IGNORE INTO ventas (id, canal, nodo, total, creado_en, sincronizado_en) "
+              "VALUES (%s,'POS','LOCAL',%s,%s,NOW(3))", (ev["venta_id"], ev["total"], ev["creado_en"]))
+    if c.rowcount == 0:
+        return "duplicado"                 # ya se había aplicado: un reintento no duplica la venta
+    for it in ev["items"]:
+        c.execute("UPDATE productos SET stock = stock - %s ... WHERE sku=%s", ...)  # delta: conmuta con Rappi/Web
+        ...  # si el stock queda negativo se registra un CONFLICTO de sobreventa</pre>
+<h2>Circuit Breaker</h2>
+<pre>def permitir(self) -> bool:
+    with self._lock:
+        self._actualizar()                         # ABIERTO -> SEMIABIERTO tras tiempo_reset
+        if self._estado == self.CERRADO:
+            return True
+        if self._estado == self.SEMIABIERTO and not self._prueba_en_curso:
+            self._prueba_en_curso = True           # una sola petición de prueba
+            return True
+        return False</pre>
+<h2>Evidencias de Funcionamiento</h2>
+<figure><p class="tabla-num">Figura 2</p>
+<p class="tabla-tit">Panel del POS en modo normal (nodo activo: nube)</p>
+<img src="../capturas/02_normal_nube.png" alt="Modo normal"></figure>
+<figure><p class="tabla-num">Figura 3</p>
+<p class="tabla-tit">Panel del POS en modo respaldo tras cortar internet</p>
+<img src="../capturas/03_failover_local.png" alt="Modo respaldo">
+<p class="nota"><i>Nota.</i> El circuit breaker está abierto, las ventas se registran en el servidor local con latencias cercanas a 20 ms y quedan pendientes de sincronizar. La bitácora registra el failover.</p></figure>
+<figure><p class="tabla-num">Figura 4</p>
+<p class="tabla-tit">Panel del POS después de restablecer la conexión</p>
+<img src="../capturas/04_recuperado_sincronizado.png" alt="Recuperado">
+<p class="nota"><i>Nota.</i> La cola quedó en cero, el POS regresó a la nube y la actividad de Rappi y WooCommerce vuelve a ser visible.</p></figure>
+
+<!-- ============================ 10 ============================ -->
+<h1>Tolerancia a Fallos y Recuperación</h1>
+<p>La solución combina varios mecanismos complementarios, resumidos en la Tabla 6.</p>
+<p class="tabla-num">Tabla 6</p>
+<p class="tabla-tit">Mecanismos de tolerancia a fallos implementados</p>
+<table>
+<thead><tr><th>Mecanismo</th><th>Implementación</th><th>Falla que mitiga</th></tr></thead>
+<tbody>
+<tr><td>Tiempos de espera</td><td>Conexión 1 s, lectura y escritura 3 s; resolución DNS limitada a 0,8 s con caché de la última IP conocida</td><td>Nodo que no responde, red caída, DNS lento</td></tr>
+<tr><td>Reintentos con backoff</td><td>POS: 2 intentos (0,2 s); sincronizador: 2, 4 y 8 s</td><td>Fallas transitorias de red</td></tr>
+<tr><td>Circuit breaker</td><td>Se abre tras 2 fallos; prueba la nube cada 8 s (semiabierto)</td><td>Esperas largas repetidas contra un nodo caído</td></tr>
+<tr><td>Replicación</td><td>PULL nube → local cada 2 s por marca de agua</td><td>Pérdida del nodo principal</td></tr>
+<tr><td>Failover automático</td><td>El POS ejecuta la operación en el nodo local</td><td>Caída del VPS o de internet</td></tr>
+<tr><td>Transactional Outbox</td><td>Venta y evento en la misma transacción local</td><td>Pérdida de operaciones durante el corte</td></tr>
+<tr><td>Idempotencia</td><td>UUID por venta e <code>INSERT IGNORE</code> por movimiento</td><td>Duplicados por reintentos o fallas parciales</td></tr>
+<tr><td>Cola de errores</td><td>Eventos con error de datos pasan a estado ERROR sin bloquear la cola</td><td>Mensajes defectuosos</td></tr>
+<tr><td>Recuperación de servicios</td><td><code>restart: unless-stopped</code> y health checks en Docker</td><td>Caída de un proceso</td></tr>
+<tr><td>Degradación controlada</td><td>Si ambos nodos fallan, respuesta HTTP 503 en menos de 10 s</td><td>Falla total</td></tr>
+</tbody></table>
+<h2>Resolución de Conflictos</h2>
+<p>Durante un corte de internet, la tienda y los canales en línea modifican copias distintas del inventario, lo que constituye una partición de red en el sentido del teorema CAP (Brewer, 2012). Para reconciliarlas sin perder información, las ventas se sincronizan como incrementos negativos de stock (deltas) y no como valores absolutos. Como la resta es conmutativa, el resultado final es correcto sin importar el orden en que lleguen las ventas de la tienda, de Rappi y de la web. Los precios siguen la regla de negocio definida por la veterinaria: el POS es la autoridad, por lo que su último precio sobrescribe el de la nube. Si una misma unidad se vendió en la tienda y en línea durante el corte, el stock puede quedar negativo; el sistema aplica de todas formas la venta del POS, porque corresponde a mercancía ya facturada y entregada, y registra un conflicto de sobreventa en la bitácora para que el administrador lo revise.</p>
+<h2>Prevención de Desorden de Eventos</h2>
+<p>Mientras existan operaciones pendientes en la cola, el POS sigue escribiendo en el nodo local aunque la nube ya responda. Así se evita que una operación nueva llegue a la nube antes que otra más antigua, por ejemplo dos cambios de precio sucesivos. Solo cuando la cola queda vacía el POS vuelve a la nube.</p>
+
+<!-- ============================ 11 ============================ -->
+<h1>Seguridad del Sistema</h1>
+<p class="tabla-num">Tabla 7</p>
+<p class="tabla-tit">Medidas de seguridad</p>
+<table>
+<thead><tr><th>Aspecto</th><th>Medida implementada</th></tr></thead>
+<tbody>
+<tr><td>Autenticación</td><td>Inicio de sesión que emite un JWT firmado con HS256 y vigencia de 8 horas; comparación de claves en tiempo constante (<code>hmac.compare_digest</code>) y retardo ante intentos fallidos.</td></tr>
+<tr><td>Autorización</td><td>Control basado en roles: el cajero solo vende; el administrador además cambia precios y ajusta stock (HTTP 403 en caso contrario).</td></tr>
+<tr><td>Validación de entradas</td><td>Modelos Pydantic: patrón de SKU <code>^[A-Z0-9-]{3,20}$</code>, cantidades entre 1 y 100, precios positivos con 2 decimales y máximo 50 ítems por venta.</td></tr>
+<tr><td>Inyección SQL</td><td>Todas las consultas son parametrizadas.</td></tr>
+<tr><td>Gestión de secretos</td><td>Credenciales en <code>.env</code> excluido de Git; el repositorio solo contiene <code>.env.example</code> con valores de ejemplo.</td></tr>
+<tr><td>Protección de interfaces</td><td>Las bases de datos solo se publican en 127.0.0.1; CORS restringido al origen del panel; el panel escapa el HTML para prevenir XSS.</td></tr>
+<tr><td>Mínimo privilegio</td><td>Usuario de base de datos de aplicación distinto de root; contenedores ejecutados con un usuario sin privilegios.</td></tr>
+<tr><td>Cifrado en tránsito (producción)</td><td>Túnel VPN WireGuard o TLS de MariaDB entre la tienda y el VPS, y HTTPS en el panel. En la simulación local no se activó para simplificar la reproducción.</td></tr>
+<tr><td>Auditoría</td><td>Tabla de movimientos con origen, nodo y fecha de cada cambio; bitácora de eventos.</td></tr>
+</tbody></table>
+<p>Estas medidas responden a los riesgos más comunes de las API identificados por la OWASP Foundation (2023), en particular la autenticación rota, la autorización a nivel de función y la configuración insegura.</p>
+
+<!-- ============================ 12 ============================ -->
+<h1>Pruebas y Evaluación</h1>
+<p>Las pruebas se automatizaron en la carpeta <code>pruebas/</code> y se ejecutan con <code>python pruebas/ejecutar_todas.py</code> sobre el sistema desplegado. Todas guardan sus resultados en la carpeta <code>evidencias/</code>. Se ejecutaron 48 casos, todos aprobados.</p>
+<p class="tabla-num">Tabla 8</p>
+<p class="tabla-tit">Resumen de pruebas</p>
+<table>
+<thead><tr><th>Tipo</th><th>Archivo</th><th>Casos</th><th>Resultado</th></tr></thead>
+<tbody>
+<tr><td>Unitarias (circuit breaker)</td><td>test_circuit_breaker.py</td><td>6</td><td>6/6 aprobados</td></tr>
+<tr><td>Funcionales, integración y seguridad</td><td>prueba_funcional.py</td><td>17</td><td>17/17 aprobados</td></tr>
+<tr><td>Concurrencia y rendimiento</td><td>prueba_concurrencia_rendimiento.py</td><td>6</td><td>6/6 aprobados</td></tr>
+<tr><td>Tolerancia a fallos</td><td>prueba_tolerancia_fallos.py</td><td>19</td><td>19/19 aprobados</td></tr>
+</tbody></table>
+
+<h2>Pruebas Funcionales y de Integración</h2>
+<p>Verifican la consulta del inventario, el registro de ventas con descuento de existencias, la agrupación de ítems repetidos, el rechazo de ventas sin stock (HTTP 409), la idempotencia (reenviar la misma venta no la duplica), el cambio de precio, la réplica del cambio al servidor local (0,6 s) y su notificación a Rappi/WooCommerce (0,6 s). Las pruebas de seguridad confirman el rechazo de solicitudes sin token o con token manipulado (401), de cajeros que intentan cambiar precios (403), de claves incorrectas (401) y de entradas inválidas, incluido un intento de inyección SQL (422).</p>
+
+<h2>Pruebas de Concurrencia</h2>
+<p>Cincuenta solicitudes simultáneas intentaron vender un producto con 20 unidades. Se registraron exactamente 20 ventas exitosas y 30 rechazos por stock insuficiente, y el stock final fue 0, nunca negativo. Esto demuestra que el bloqueo de filas evita las condiciones de carrera.</p>
+
+<h2>Pruebas de Rendimiento</h2>
+<p class="tabla-num">Tabla 9</p>
+<p class="tabla-tit">Resultados de rendimiento (10 clientes concurrentes)</p>
+<table>
+<thead><tr><th>Operación</th><th>Solicitudes</th><th>Éxito</th><th>p50</th><th>p95</th><th>Máximo</th><th>Rendimiento</th></tr></thead>
+<tbody>
+<tr><td>Consultar inventario</td><td>300</td><td>100 %</td><td>69,2 ms</td><td>92,0 ms</td><td>140,1 ms</td><td>139,4 sol/s</td></tr>
+<tr><td>Registrar venta</td><td>200</td><td>100 %</td><td>130,6 ms</td><td>163,0 ms</td><td>198,5 ms</td><td>75,3 sol/s</td></tr>
+</tbody></table>
+<p class="nota"><i>Nota.</i> Mediciones en un equipo con Windows 11 y Docker Desktop. En producción se sumaría la latencia de red entre la tienda y el VPS.</p>
+
+<h2>Pruebas de Tolerancia a Fallos</h2>
+<p>Se probaron tres escenarios: (A) la tienda pierde internet mientras el VPS y los canales en línea siguen operando; (B) el VPS se cae; y (C) ambos nodos se caen. En A y B se registraron cinco ventas y un cambio de precio sin conexión, se restableció el servicio y se verificó la consistencia.</p>
+<p class="tabla-num">Tabla 10</p>
+<p class="tabla-tit">Resultados de tolerancia a fallos</p>
+<table>
+<thead><tr><th>Métrica</th><th>A. Sin internet</th><th>B. Caída VPS</th></tr></thead>
+<tbody>
+<tr><td>Primera venta tras la falla (detección + failover)</td><td>3,86 s</td><td>3,84 s</td></tr>
+<tr><td>Latencia promedio en modo respaldo</td><td>36,6 ms</td><td>28,1 ms</td></tr>
+<tr><td>Operaciones encoladas</td><td>6</td><td>6</td></tr>
+<tr><td>Tiempo de sincronización al recuperar</td><td>4,3 s</td><td>4,8 s</td></tr>
+<tr><td>Ventas offline en la nube (sin duplicados)</td><td>5 de 5</td><td>5 de 5</td></tr>
+<tr><td>Stock y precio del POS prevalecen</td><td>Sí</td><td>Sí</td></tr>
+<tr><td>Ventas de Rappi/Web durante el corte</td><td>3 (conservadas)</td><td>No aplica</td></tr>
+<tr><td>Consistencia final nube = local</td><td>Sí</td><td>Sí</td></tr>
+</tbody></table>
+<p>En el escenario C, el POS respondió con un error controlado HTTP 503 en 7,4 s en lugar de quedarse bloqueado, y se recuperó automáticamente al reiniciar los nodos.</p>
+
+<h2>Comparación con los Requisitos</h2>
+<p class="tabla-num">Tabla 11</p>
+<p class="tabla-tit">Cumplimiento de los requisitos no funcionales</p>
+<table>
+<thead><tr><th>Requisito</th><th>Meta</th><th>Resultado</th><th>Cumple</th></tr></thead>
+<tbody>
+<tr><td>RNF-01 Disponibilidad</td><td>Failover &lt; 10 s</td><td>3,9 s</td><td>Sí</td></tr>
+<tr><td>RNF-02 Rendimiento consulta</td><td>p95 &lt; 500 ms</td><td>92 ms</td><td>Sí</td></tr>
+<tr><td>RNF-02 Rendimiento venta</td><td>p95 &lt; 1 000 ms</td><td>163 ms</td><td>Sí</td></tr>
+<tr><td>RNF-03 Recuperación</td><td>&lt; 60 s</td><td>4,3 – 4,8 s</td><td>Sí</td></tr>
+<tr><td>RNF-04 Integridad</td><td>0 pérdidas, 0 duplicados</td><td>0 y 0</td><td>Sí</td></tr>
+<tr><td>RNF-05 Seguridad</td><td>401/403/422 según el caso</td><td>8 de 8 casos</td><td>Sí</td></tr>
+</tbody></table>
+
+<!-- ============================ 13 ============================ -->
+<h1>Despliegue y Ejecución</h1>
+<h2>Requisitos de Hardware y Software</h2>
+<p>Para la simulación se requiere un equipo con al menos 2 núcleos, 4 GB de RAM libres y 3 GB de disco, con Docker Desktop (o Docker Engine con Compose v2) y Python 3.11 o superior para ejecutar las pruebas. En producción, el nodo local es el computador HP todo en uno de la tienda, con MariaDB y los servicios POS y de sincronización, conectado al VPS de Vultr mediante un túnel cifrado.</p>
+<h2>Pasos de Instalación</h2>
+<pre>git clone https://github.com/DanielBermudezSE/respaldo-pos-veterinaria.git
+cd respaldo-pos-veterinaria
+cp .env.example .env          # cambiar todas las claves
+docker compose up -d --build  # levanta vet-nube, vet-local, vet-pos, vet-sync y vet-canales
+# Panel: http://localhost:8000   ·   API documentada: http://localhost:8000/docs</pre>
+<h2>Variables y Puertos</h2>
+<p class="tabla-num">Tabla 12</p>
+<p class="tabla-tit">Variables de configuración y puertos</p>
+<table>
+<thead><tr><th>Variable / puerto</th><th>Propósito</th></tr></thead>
+<tbody>
+<tr><td>DB_NAME, DB_USER, DB_PASSWORD</td><td>Base de datos y usuario de aplicación</td></tr>
+<tr><td>NUBE_ROOT_PASSWORD, LOCAL_ROOT_PASSWORD</td><td>Claves root de cada nodo</td></tr>
+<tr><td>JWT_SECRET</td><td>Secreto de firma de los tokens</td></tr>
+<tr><td>POS_ADMIN_USER/PASS, POS_CAJERO_USER/PASS</td><td>Usuarios del POS</td></tr>
+<tr><td>DB_CONNECT_TIMEOUT, CB_UMBRAL_FALLOS, CB_TIEMPO_RESET, SYNC_INTERVALO, SYNC_BACKOFF_MAX</td><td>Parámetros de tolerancia a fallos</td></tr>
+<tr><td>8000</td><td>API REST y panel del POS</td></tr>
+<tr><td>3307 / 3308 (solo 127.0.0.1)</td><td>MariaDB nube / local, para pruebas</td></tr>
+</tbody></table>
+<h2>Configuración de Contenedores</h2>
+<pre>services:
+  mariadb-nube:  { image: mariadb:11.4, container_name: vet-nube,  networks: [internet], healthcheck: ... }
+  mariadb-local: { image: mariadb:11.4, container_name: vet-local, networks: [tienda],   healthcheck: ... }
+  pos:     { build: pos/Dockerfile,     ports: ["8000:8000"], networks: [internet, tienda], restart: unless-stopped }
+  sync:    { build: sync/Dockerfile,    networks: [internet, tienda], restart: unless-stopped }
+  canales: { build: canales/Dockerfile, networks: [internet],         restart: unless-stopped }
+networks:
+  internet: { name: vet_internet }
+  tienda:   { name: vet_tienda }</pre>
+<h2>Simulación de Fallas</h2>
+<pre>python scripts/simular.py cortar-internet     # y luego: restaurar-internet
+python scripts/simular.py caer-vps            # y luego: levantar-vps
+python scripts/simular.py estado</pre>
+<p>El manual detallado se encuentra en <code>docs/MANUAL_INSTALACION.md</code> (Anexo B).</p>
+
+<!-- ============================ 14 ============================ -->
+<h1>Resultados y Análisis</h1>
+<h2>Logros</h2>
+<p>Se construyó un sistema funcional que cumple todos los requisitos planteados. El punto de venta siguió facturando en los dos escenarios de falla realistas, conservó cada operación y la sincronizó con la nube en menos de cinco segundos tras la recuperación, sin duplicados y con consistencia final verificada entre ambos nodos. Las ventas que Rappi y la tienda web realizaron durante el corte también se conservaron, porque los cambios de inventario se reconcilian como deltas. Una vez abierto el circuit breaker, el modo respaldo resultó más rápido que el acceso normal a la nube (alrededor de 35 ms frente a 130 ms), lo que demuestra el beneficio de tener los datos cerca del usuario.</p>
+<h2>Dificultades</h2>
+<p>La primera versión tardaba entre 7 y 10 segundos en atender la primera venta después de la falla. El análisis mostró que el tiempo de espera de conexión no limitaba la resolución DNS del nombre del servidor caído, que podía tardar varios segundos. Se resolvió limitando la resolución DNS a 0,8 s, guardando en caché la última IP conocida y reduciendo el tiempo de espera de conexión a 1 s, con lo que el failover bajó a 3,9 s. Otra dificultad fue el orden de los eventos durante la recuperación: si el POS volvía a la nube antes de vaciar la cola, un cambio de precio antiguo podía sobrescribir uno nuevo. Se resolvió manteniendo el POS en el nodo local hasta que la cola queda vacía. Finalmente, Docker Desktop no iniciaba por un socket obsoleto en el equipo de desarrollo, lo que obligó a limpiar su directorio de ejecución.</p>
+<h2>Limitaciones</h2>
+<ul>
+  <li>La simulación representa el POS comercial con un servicio propio. En producción, la integración con el software comercial dependerá de que este permita configurar el servidor de base de datos o exponga una API; de lo contrario se requeriría un proxy de base de datos (por ejemplo, MaxScale o ProxySQL) que haga el failover de forma transparente.</li>
+  <li>La réplica nube → local se hace cada 2 s, por lo que se pueden perder hasta 2 s de cambios hechos en línea justo antes de un corte (objetivo de punto de recuperación ≈ 2 s). Durante el corte, el POS desconoce las ventas en línea y puede haber sobreventas, que se detectan y registran pero se resuelven manualmente.</li>
+  <li>La primera operación tras una falla tarda unos 4 s mientras se detecta; las siguientes son inmediatas.</li>
+  <li>El cifrado en tránsito entre la tienda y el VPS y la gestión de secretos con un almacén dedicado se dejan como paso de producción.</li>
+  <li>El diseño contempla una sola tienda; varias sedes requerirían identificadores de nodo y relojes lógicos para ordenar los eventos.</li>
+</ul>
+
+<!-- ============================ 15 ============================ -->
+<h1>Presupuesto</h1>
+<p>La Tabla 13 relaciona los recursos necesarios. Para convertir dólares a pesos colombianos se usó una tasa de referencia de 4 000 COP por dólar.</p>
+<p class="tabla-num">Tabla 13</p>
+<p class="tabla-tit">Presupuesto del proyecto</p>
+<table>
+<thead><tr><th>Concepto</th><th>Detalle</th><th>Costo</th><th>Observación</th></tr></thead>
+<tbody>
+<tr><td colspan="4"><b>Inversión inicial</b></td></tr>
+<tr><td>Desarrollo e implementación</td><td>Análisis, diseño, desarrollo, pruebas y documentación (contrato)</td><td>$2 000 000</td><td>Pago único</td></tr>
+<tr><td>Servidor local</td><td>Computador HP todo en uno</td><td>$2 000 000</td><td>Equipo ya disponible en la tienda</td></tr>
+<tr><td>Software</td><td>MariaDB, Python, FastAPI, Docker, Git</td><td>$0</td><td>Software libre y gratuito</td></tr>
+<tr><td>Repositorio</td><td>GitHub</td><td>$0</td><td>Plan gratuito</td></tr>
+<tr><td><b>Subtotal inversión</b></td><td></td><td><b>$4 000 000</b></td><td></td></tr>
+<tr><td colspan="4"><b>Operación mensual</b></td></tr>
+<tr><td>VPS Vultr</td><td>Plan de USD 10 al mes</td><td>$40 000</td><td>Servicio ya contratado</td></tr>
+<tr><td>Internet de la tienda</td><td>Plan de banda ancha</td><td>$120 000</td><td>Servicio ya contratado</td></tr>
+<tr><td>Energía del servidor local</td><td>≈ 60 W × 24 h × 30 días ≈ 43 kWh</td><td>$40 000</td><td>Estimado</td></tr>
+<tr><td><b>Subtotal mensual</b></td><td></td><td><b>$200 000</b></td><td>$2 400 000 al año</td></tr>
+<tr><td colspan="4"><b>Recomendado (opcional)</b></td></tr>
+<tr><td>UPS</td><td>Respaldo de energía para el servidor y el router</td><td>$350 000</td><td>Protege ante cortes de energía</td></tr>
+</tbody></table>
+<p class="nota"><i>Nota.</i> Valores en pesos colombianos. El costo incremental real para el negocio es el contrato de desarrollo y la energía del equipo, porque el VPS, el internet y el computador ya existían. Elaboración propia.</p>
+
+<!-- ============================ 16 ============================ -->
+<h1>Conclusiones</h1>
+<p>Se cumplió el objetivo general: el sistema implementado permite que el punto de venta de la veterinaria siga operando ante la caída del VPS o la pérdida de internet y sincroniza automáticamente el inventario y los precios con la nube al recuperarse. Los seis objetivos específicos se alcanzaron: se analizó la arquitectura y se identificó el VPS como punto único de falla; se diseñó una arquitectura de dos nodos; se implementaron tres microservicios en contenedores; se incorporaron mecanismos de tolerancia a fallos y de seguridad; se verificó la solución con 48 pruebas aprobadas, y se documentaron la instalación y el presupuesto.</p>
+<p>El principal aprendizaje es que la tolerancia a fallos no depende de un único mecanismo sino de la combinación de varios: los tiempos de espera evitan bloqueos, el circuit breaker evita repetir esperas inútiles, el failover mantiene el servicio, el patrón Outbox impide perder operaciones y la idempotencia permite reintentar sin miedo a duplicar. También se comprobó en la práctica el compromiso descrito por el teorema CAP: para mantener disponible el POS durante una partición se acepta una consistencia eventual, y esta solo es segura si se definen reglas explícitas de resolución de conflictos acordes con el negocio, como que el POS prevalezca y que el stock se reconcilie por deltas.</p>
+<p>Frente a la arquitectura centralizada, la solución distribuida ofrece mayor disponibilidad, mejor latencia local y trazabilidad completa, a costa de mayor complejidad operativa, la posibilidad de sobreventas durante los cortes y la necesidad de monitorear la sincronización. Como trabajo futuro se proponen la integración con el software POS comercial mediante un proxy de base de datos, el cifrado del enlace con WireGuard, alertas automáticas al administrador y la extensión a varias sedes.</p>
+
+<!-- ============================ REFERENCIAS ============================ -->
+<h1>Referencias</h1>
+<div class="ref">
+<p>Avizienis, A., Laprie, J.-C., Randell, B., &amp; Landwehr, C. (2004). Basic concepts and taxonomy of dependable and secure computing. <i>IEEE Transactions on Dependable and Secure Computing, 1</i>(1), 11–33. https://doi.org/10.1109/TDSC.2004.2</p>
+<p>Brewer, E. (2012). CAP twelve years later: How the “rules” have changed. <i>Computer, 45</i>(2), 23–29. https://doi.org/10.1109/MC.2012.37</p>
+<p>Coulouris, G., Dollimore, J., Kindberg, T., &amp; Blair, G. (2012). <i>Distributed systems: Concepts and design</i> (5th ed.). Addison-Wesley.</p>
+<p>Fielding, R. T. (2000). <i>Architectural styles and the design of network-based software architectures</i> [Doctoral dissertation, University of California, Irvine]. https://ics.uci.edu/~fielding/pubs/dissertation/top.htm</p>
+<p>Fowler, M. (2014, 6 de marzo). <i>CircuitBreaker</i>. martinfowler.com. https://martinfowler.com/bliki/CircuitBreaker.html</p>
+<p>Jones, M., Bradley, J., &amp; Sakimura, N. (2015). <i>JSON Web Token (JWT)</i> (RFC 7519). Internet Engineering Task Force. https://doi.org/10.17487/RFC7519</p>
+<p>Kleppmann, M. (2017). <i>Designing data-intensive applications: The big ideas behind reliable, scalable, and maintainable systems</i>. O’Reilly Media.</p>
+<p>Lamport, L. (1978). Time, clocks, and the ordering of events in a distributed system. <i>Communications of the ACM, 21</i>(7), 558–565. https://doi.org/10.1145/359545.359563</p>
+<p>Mell, P., &amp; Grance, T. (2011). <i>The NIST definition of cloud computing</i> (NIST Special Publication 800-145). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-145</p>
+<p>Merkel, D. (2014). Docker: Lightweight Linux containers for consistent development and deployment. <i>Linux Journal, 2014</i>(239), Artículo 2.</p>
+<p>Newman, S. (2021). <i>Building microservices: Designing fine-grained systems</i> (2nd ed.). O’Reilly Media.</p>
+<p>Nygard, M. T. (2018). <i>Release it! Design and deploy production-ready software</i> (2nd ed.). Pragmatic Bookshelf.</p>
+<p>OWASP Foundation. (2023). <i>OWASP API security top 10 – 2023</i>. https://owasp.org/API-Security/editions/2023/en/0x00-header/</p>
+<p>Richardson, C. (2018). <i>Microservices patterns: With examples in Java</i>. Manning Publications.</p>
+<p>Tanenbaum, A. S., &amp; van Steen, M. (2017). <i>Distributed systems</i> (3rd ed.). Maarten van Steen. https://www.distributed-systems.net</p>
+<p>Vogels, W. (2009). Eventually consistent. <i>Communications of the ACM, 52</i>(1), 40–44. https://doi.org/10.1145/1435417.1435432</p>
+</div>
+
+<!-- ============================ ANEXOS ============================ -->
+<h1>Anexos</h1>
+<h2>Anexo A. Repositorio del Proyecto</h2>
+<p class="ni">Enlace al repositorio: [ENLACE DEL REPOSITORIO]</p>
+<p class="ni">Estructura: <code>docker-compose.yml</code>, <code>.env.example</code>, <code>db/init/</code> (esquema y datos ficticios), <code>comun/</code>, <code>pos/</code>, <code>sync/</code>, <code>canales/</code>, <code>pruebas/</code>, <code>scripts/</code>, <code>evidencias/</code> y <code>docs/</code>.</p>
+<h2>Anexo B. Manual de Instalación y Ejecución</h2>
+<p class="ni">Se encuentra en <code>docs/MANUAL_INSTALACION.md</code>. Incluye los requisitos, las variables, los puertos, los pasos de ejecución, la simulación de fallas, las pruebas y la solución de problemas.</p>
+<h2>Anexo C. Evidencias de Pruebas</h2>
+<p class="ni">La carpeta <code>evidencias/</code> contiene los resultados de cada ejecución en texto y en JSON: <code>00_pruebas_unitarias.txt</code>, <code>01_funcionales_integracion_seguridad</code>, <code>02_concurrencia_rendimiento</code>, <code>03_tolerancia_fallos</code>, junto con los registros de los servicios de sincronización y de canales.</p>
+<h2>Anexo D. Capturas Adicionales</h2>
+<figure><p class="tabla-num">Figura 5</p>
+<p class="tabla-tit">Inicio de sesión del POS</p>
+<img src="../capturas/01_login.png" alt="Login" style="width:80%"></figure>
+<figure><p class="tabla-num">Figura 6</p>
+<p class="tabla-tit">Documentación interactiva de la API (OpenAPI/Swagger)</p>
+<img src="../capturas/05_api_swagger.png" alt="Swagger" style="width:80%"></figure>
+<h2>Anexo E. Esquema de la Base de Datos</h2>
+<pre>productos(sku PK, nombre, categoria, precio, stock, version, actualizado_en)
+ventas(id UUID PK, canal POS|WEB|RAPPI, nodo NUBE|LOCAL, total, creado_en, sincronizado_en)
+venta_items(id PK, venta_id FK, sku FK, cantidad, precio_unitario)
+movimientos(id UUID PK, sku, tipo VENTA|PRECIO|AJUSTE, cantidad, precio, origen, nodo, nota, creado_en)
+cola_sincronizacion(id PK, tipo, payload JSON, estado PENDIENTE|ENVIADO|ERROR, intentos, ultimo_error, creado_en, enviado_en)
+notificaciones_canales(id PK, sku, stock, precio, destino, creado_en)
+bitacora(id PK, servicio, nivel, mensaje, creado_en)
+estado_sync(clave PK, valor, actualizado_en)</pre>
+</body>
+</html>

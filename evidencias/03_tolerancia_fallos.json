@@ -1,0 +1,131 @@
+{
+  "prueba": "Pruebas de tolerancia a fallos",
+  "casos": [
+    {
+      "caso": "A. Tienda sin internet: primera venta tras la falla se atiende en LOCAL",
+      "esperado": "201 LOCAL",
+      "obtenido": "201 LOCAL (3.86 s)",
+      "ok": true
+    },
+    {
+      "caso": "A. Tienda sin internet: cambio de precio sin conexión con la nube",
+      "esperado": "200 LOCAL",
+      "obtenido": "200 LOCAL",
+      "ok": true
+    },
+    {
+      "caso": "A. Tienda sin internet: circuit breaker abierto y operaciones en cola",
+      "esperado": "ABIERTO, 6 pendientes",
+      "obtenido": "ABIERTO, 6 pendientes",
+      "ok": true
+    },
+    {
+      "caso": "A. Tienda sin internet: ventas en modo respaldo con baja latencia (breaker abierto)",
+      "esperado": "< 300 ms",
+      "obtenido": "37 ms promedio",
+      "ok": true
+    },
+    {
+      "caso": "A. Tienda sin internet: sincronización automática al recuperar la conexión",
+      "esperado": "0 pendientes",
+      "obtenido": "0 pendientes en 4.3 s",
+      "ok": true
+    },
+    {
+      "caso": "A. Tienda sin internet: las 5 ventas offline existen en la nube sin duplicados",
+      "esperado": "5",
+      "obtenido": "5",
+      "ok": true
+    },
+    {
+      "caso": "A. Tienda sin internet: stock y precio del POS prevalecen en la nube",
+      "esperado": "stock 95, precio 11000.00",
+      "obtenido": "stock 95, precio 11000.00",
+      "ok": true
+    },
+    {
+      "caso": "A. Tienda sin internet: Rappi/WooCommerce siguieron vendiendo en la nube durante el corte",
+      "esperado": "> 0 ventas",
+      "obtenido": "3 ventas",
+      "ok": true
+    },
+    {
+      "caso": "A. Tienda sin internet: consistencia final NUBE == LOCAL (15 productos)",
+      "esperado": "idénticos",
+      "obtenido": "idénticos en 2.0 s",
+      "ok": true
+    },
+    {
+      "caso": "B. Caída del VPS: primera venta tras la falla se atiende en LOCAL",
+      "esperado": "201 LOCAL",
+      "obtenido": "201 LOCAL (3.84 s)",
+      "ok": true
+    },
+    {
+      "caso": "B. Caída del VPS: cambio de precio sin conexión con la nube",
+      "esperado": "200 LOCAL",
+      "obtenido": "200 LOCAL",
+      "ok": true
+    },
+    {
+      "caso": "B. Caída del VPS: circuit breaker abierto y operaciones en cola",
+      "esperado": "ABIERTO, 6 pendientes",
+      "obtenido": "ABIERTO, 6 pendientes",
+      "ok": true
+    },
+    {
+      "caso": "B. Caída del VPS: ventas en modo respaldo con baja latencia (breaker abierto)",
+      "esperado": "< 300 ms",
+      "obtenido": "28 ms promedio",
+      "ok": true
+    },
+    {
+      "caso": "B. Caída del VPS: sincronización automática al recuperar la conexión",
+      "esperado": "0 pendientes",
+      "obtenido": "0 pendientes en 4.8 s",
+      "ok": true
+    },
+    {
+      "caso": "B. Caída del VPS: las 5 ventas offline existen en la nube sin duplicados",
+      "esperado": "5",
+      "obtenido": "5",
+      "ok": true
+    },
+    {
+      "caso": "B. Caída del VPS: stock y precio del POS prevalecen en la nube",
+      "esperado": "stock 95, precio 11000.00",
+      "obtenido": "stock 95, precio 11000.00",
+      "ok": true
+    },
+    {
+      "caso": "B. Caída del VPS: consistencia final NUBE == LOCAL (15 productos)",
+      "esperado": "idénticos",
+      "obtenido": "idénticos en 0.8 s",
+      "ok": true
+    },
+    {
+      "caso": "C. Ambos nodos caídos: error controlado",
+      "esperado": "503 en < 10 s",
+      "obtenido": "503 en 7.4 s",
+      "ok": true
+    },
+    {
+      "caso": "C. Recuperación tras reiniciar ambos nodos",
+      "esperado": "nodo activo NUBE",
+      "obtenido": "NUBE",
+      "ok": true
+    }
+  ],
+  "datos": {
+    "A. Tienda sin internet": {
+      "failover_primera_venta_s": 3.86,
+      "latencia_offline_ms": 36.6,
+      "tiempo_sincronizacion_s": 4.3
+    },
+    "B. Caída del VPS": {
+      "failover_primera_venta_s": 3.84,
+      "latencia_offline_ms": 28.1,
+      "tiempo_sincronizacion_s": 4.8
+    }
+  }
+}

@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 700" font-family="Segoe UI, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="fn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1d6fd8"/>
+    </marker>
+    <marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/>
+    </marker>
+    <style>
+      .zona{fill:#f8fafc;stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:6 4}
+      .caja{fill:#fff;stroke:#334155;stroke-width:1.4}
+      .db{fill:#eef4ff;stroke:#1d6fd8;stroke-width:1.6}
+      .dbl{fill:#fff4e8;stroke:#c2410c;stroke-width:1.6}
+      .ext{fill:#f1f5f9;stroke:#64748b;stroke-width:1.2}
+      .t{font-weight:600;fill:#0f172a}
+      .s{fill:#475569;font-size:11.5px}
+      .z{font-weight:700;fill:#334155;font-size:15px}
+      .lab{fill:#334155;font-size:11.5px}
+      .ln{stroke:#334155;stroke-width:1.5;fill:none}
+      .lnn{stroke:#1d6fd8;stroke-width:1.8;fill:none}
+      .lnl{stroke:#c2410c;stroke-width:1.8;fill:none}
+    </style>
+  </defs>
+
+  <text x="560" y="28" text-anchor="middle" class="z" font-size="18">Arquitectura distribuida · Respaldo del POS de la veterinaria</text>
+
+  <!-- Zona Internet / Nube -->
+  <rect x="20" y="50" width="470" height="560" rx="14" class="zona"/>
+  <text x="40" y="78" class="z">☁ Nube — VPS Vultr (red "internet")</text>
+
+  <rect x="150" y="250" width="210" height="110" rx="10" class="db"/>
+  <text x="255" y="282" text-anchor="middle" class="t">MariaDB NUBE</text>
+  <text x="255" y="302" text-anchor="middle" class="s">Base de datos principal</text>
+  <text x="255" y="320" text-anchor="middle" class="s">productos · ventas · movimientos</text>
+  <text x="255" y="338" text-anchor="middle" class="s">contenedor vet-nube :3306</text>
+
+  <rect x="150" y="440" width="210" height="80" rx="10" class="caja"/>
+  <text x="255" y="468" text-anchor="middle" class="t">Notificador de cambios</text>
+  <text x="255" y="488" text-anchor="middle" class="s">detecta stock/precio modificado</text>
+  <text x="255" y="505" text-anchor="middle" class="s">(script del VPS)</text>
+
+  <rect x="45" y="105" width="170" height="70" rx="10" class="ext"/>
+  <text x="130" y="135" text-anchor="middle" class="t">Tienda web</text>
+  <text x="130" y="155" text-anchor="middle" class="s">WooCommerce</text>
+  <rect x="295" y="105" width="170" height="70" rx="10" class="ext"/>
+  <text x="380" y="135" text-anchor="middle" class="t">Rappi</text>
+  <text x="380" y="155" text-anchor="middle" class="s">API oficial</text>
+  <text x="255" y="200" text-anchor="middle" class="s">(simulados por el servicio vet-canales)</text>
+
+  <path d="M130,175 L200,250" class="ln" marker-end="url(#f)"/>
+  <path d="M380,175 L310,250" class="ln" marker-end="url(#f)"/>
+  <text x="96" y="225" class="lab">ventas en línea</text>
+  <text x="340" y="225" class="lab">ventas en línea</text>
+  <path d="M255,360 L255,440" class="ln" marker-end="url(#f)"/>
+  <text x="262" y="405" class="lab">consulta cambios (SQL)</text>
+  <path d="M150,480 C60,480 60,200 110,175" class="ln" marker-end="url(#f)" stroke-dasharray="4 3"/>
+  <path d="M360,480 C450,480 450,200 400,175" class="ln" marker-end="url(#f)" stroke-dasharray="4 3"/>
+  <text x="30" y="560" class="lab">publica stock y precio actualizados (HTTPS / API REST)</text>
+
+  <!-- Zona Tienda -->
+  <rect x="630" y="50" width="470" height="560" rx="14" class="zona"/>
+  <text x="650" y="78" class="z">🏪 Tienda física — servidor de respaldo (red "tienda")</text>
+
+  <rect x="660" y="105" width="190" height="70" rx="10" class="ext"/>
+  <text x="755" y="135" text-anchor="middle" class="t">Caja / navegador</text>
+  <text x="755" y="155" text-anchor="middle" class="s">cajero · administrador</text>
+
+  <rect x="660" y="230" width="410" height="120" rx="10" class="caja"/>
+  <text x="865" y="258" text-anchor="middle" class="t">Servicio POS (FastAPI · vet-pos :8000)</text>
+  <text x="865" y="280" text-anchor="middle" class="s">API REST · autenticación JWT · roles · validación</text>
+  <text x="865" y="298" text-anchor="middle" class="s">Circuit breaker + reintentos + timeouts</text>
+  <text x="865" y="316" text-anchor="middle" class="s">Enrutador NUBE / LOCAL (failover automático)</text>
+  <text x="865" y="334" text-anchor="middle" class="s">Bloqueo de filas (SELECT … FOR UPDATE) · idempotencia</text>
+
+  <rect x="660" y="430" width="200" height="120" rx="10" class="dbl"/>
+  <text x="760" y="460" text-anchor="middle" class="t">MariaDB LOCAL</text>
+  <text x="760" y="480" text-anchor="middle" class="s">réplica de respaldo</text>
+  <text x="760" y="498" text-anchor="middle" class="s">+ cola_sincronizacion</text>
+  <text x="760" y="516" text-anchor="middle" class="s">(Outbox) + bitácora</text>
+  <text x="760" y="534" text-anchor="middle" class="s">vet-local :3306</text>
+
+  <rect x="890" y="430" width="180" height="120" rx="10" class="caja"/>
+  <text x="980" y="460" text-anchor="middle" class="t">Servicio Sync</text>
+  <text x="980" y="480" text-anchor="middle" class="s">vet-sync</text>
+  <text x="980" y="498" text-anchor="middle" class="s">PUSH: Outbox → nube</text>
+  <text x="980" y="516" text-anchor="middle" class="s">PULL: nube → local</text>
+  <text x="980" y="534" text-anchor="middle" class="s">backoff exponencial</text>
+
+  <path d="M755,175 L755,230" class="ln" marker-end="url(#f)"/>
+  <text x="762" y="207" class="lab">HTTP REST + JWT</text>
+  <path d="M760,350 L760,430" class="lnl" marker-end="url(#fl)"/>
+  <text x="752" y="372" text-anchor="end" class="lab" fill="#c2410c">modo respaldo</text>
+  <path d="M860,490 L890,490" class="ln" marker-end="url(#f)" marker-start="url(#f)"/>
+
+  <!-- Enlaces entre zonas -->
+  <path d="M660,280 L360,290" class="lnn" marker-end="url(#fn)"/>
+  <text x="420" y="268" class="lab" fill="#1d6fd8">SQL/TCP 3306 · modo normal</text>
+  <path d="M1000,430 L1000,398 L364,326" class="lnn" marker-end="url(#fn)" stroke-dasharray="6 4"/>
+  <path d="M364,346 L955,412 L955,428" class="lnl" marker-end="url(#fl)" stroke-dasharray="6 4"/>
+  <text x="560" y="150" text-anchor="middle" class="lab" font-weight="600">Internet</text>
+  <text x="560" y="167" text-anchor="middle" class="lab">(producción:</text>
+  <text x="560" y="182" text-anchor="middle" class="lab">VPN WireGuard/TLS)</text>
+
+  <!-- Leyenda -->
+  <rect x="20" y="625" width="1080" height="58" rx="10" fill="#fff" stroke="#cbd5e1"/>
+  <line x1="40" y1="645" x2="90" y2="645" class="lnn"/><text x="98" y="649" class="lab">POS → NUBE: modo normal (escrituras y lecturas en el primario)</text>
+  <line x1="40" y1="668" x2="90" y2="668" class="lnn" stroke-dasharray="6 4"/><text x="98" y="672" class="lab">Sync PUSH: envío idempotente de la cola Outbox (operaciones hechas sin conexión)</text>
+  <line x1="600" y1="645" x2="650" y2="645" class="lnl"/><text x="658" y="649" class="lab">POS → LOCAL: modo respaldo (circuit breaker abierto)</text>
+  <line x1="600" y1="668" x2="650" y2="668" class="lnl" stroke-dasharray="6 4"/><text x="658" y="672" class="lab">Sync PULL: réplica de cambios nube → local (Rappi, web, precios)</text>
+</svg>

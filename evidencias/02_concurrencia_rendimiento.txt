@@ -1,0 +1,11 @@
+=== Pruebas de concurrencia y rendimiento — 2026-11-18 21:48:06 ===
+50 ventas simultáneas sobre stock=20 en 0.66 s -> 201:20 409:30 otros:0
+[OK] Concurrencia: exactamente 20 ventas exitosas | esperado: 20 | obtenido: 20
+[OK] Concurrencia: 30 ventas rechazadas por stock | esperado: 30 | obtenido: 30
+[OK] Concurrencia: el stock final no es negativo | esperado: 0 | obtenido: 0
+Lectura  (GET /api/productos): {'solicitudes': 300, 'concurrencia': 10, 'exito_%': 100.0, 'p50_ms': 69.2, 'p95_ms': 92.0, 'max_ms': 140.1, 'throughput_rps': 139.4}
+Escritura (POST /api/ventas):  {'solicitudes': 200, 'concurrencia': 10, 'exito_%': 100.0, 'p50_ms': 130.6, 'p95_ms': 163.0, 'max_ms': 198.5, 'throughput_rps': 75.3}
+[OK] Rendimiento: p95 de consulta de inventario < 500 ms | esperado: < 500 ms | obtenido: 92.0 ms
+[OK] Rendimiento: p95 de registro de venta < 1000 ms | esperado: < 1000 ms | obtenido: 163.0 ms
+[OK] Rendimiento: 100 % de solicitudes exitosas | esperado: 100 % | obtenido: 100.0 % / 100.0 %
+Resultado: 6/6 casos aprobados

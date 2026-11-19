@@ -1,0 +1,5 @@
+vet-canales Up 3 minutes
+vet-local Up About a minute (healthy)
+vet-nube Up About a minute (healthy)
+vet-pos Up 3 minutes
+vet-sync Up 3 minutes

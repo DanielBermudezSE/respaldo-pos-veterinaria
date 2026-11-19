@@ -1,0 +1,70 @@
+{
+  "prueba": "Pruebas de concurrencia y rendimiento",
+  "casos": [
+    {
+      "caso": "Concurrencia: exactamente 20 ventas exitosas",
+      "esperado": "20",
+      "obtenido": "20",
+      "ok": true
+    },
+    {
+      "caso": "Concurrencia: 30 ventas rechazadas por stock",
+      "esperado": "30",
+      "obtenido": "30",
+      "ok": true
+    },
+    {
+      "caso": "Concurrencia: el stock final no es negativo",
+      "esperado": "0",
+      "obtenido": "0",
+      "ok": true
+    },
+    {
+      "caso": "Rendimiento: p95 de consulta de inventario < 500 ms",
+      "esperado": "< 500 ms",
+      "obtenido": "92.0 ms",
+      "ok": true
+    },
+    {
+      "caso": "Rendimiento: p95 de registro de venta < 1000 ms",
+      "esperado": "< 1000 ms",
+      "obtenido": "163.0 ms",
+      "ok": true
+    },
+    {
+      "caso": "Rendimiento: 100 % de solicitudes exitosas",
+      "esperado": "100 %",
+      "obtenido": "100.0 % / 100.0 %",
+      "ok": true
+    }
+  ],
+  "datos": {
+    "concurrencia": {
+      "solicitudes": 50,
+      "exitosas": 20,
+      "rechazadas": 30,
+      "stock_final": 0,
+      "duracion_s": 0.66
+    },
+    "rendimiento": {
+      "lectura": {
+        "solicitudes": 300,
+        "concurrencia": 10,
+        "exito_%": 100.0,
+        "p50_ms": 69.2,
+        "p95_ms": 92.0,
+        "max_ms": 140.1,
+        "throughput_rps": 139.4
+      },
+      "escritura": {
+        "solicitudes": 200,
+        "concurrencia": 10,
+        "exito_%": 100.0,
+        "p50_ms": 130.6,
+        "p95_ms": 163.0,
+        "max_ms": 198.5,
+        "throughput_rps": 75.3
+      }
+    }
+  }
+}

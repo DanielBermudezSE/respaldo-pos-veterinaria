@@ -1,0 +1,87 @@
+
+>>> -m pytest -v test_circuit_breaker.py
+============================= test session starts =============================
+platform win32 -- Python 3.13.3, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\d4nie\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\d4nie\AppData\Local\Claude-Data\claude_pzs8sxrjxfjjc\scratch-workspaces\613fab95-97d4-46aa-83c1-72ca1798590e\c7a3555a-07b6-4d2d-85f3-2c004ba77b12\scratch-2026-11-19-0b7b19\respaldo-pos-veterinaria\pruebas
+plugins: anyio-4.8.0
+collecting ... collected 6 items
+
+test_circuit_breaker.py::test_inicia_cerrado_y_permite PASSED            [ 16%]
+test_circuit_breaker.py::test_se_abre_tras_umbral_de_fallos PASSED       [ 33%]
+test_circuit_breaker.py::test_semiabierto_permite_una_sola_prueba PASSED [ 50%]
+test_circuit_breaker.py::test_prueba_exitosa_cierra_el_circuito PASSED   [ 66%]
+test_circuit_breaker.py::test_prueba_fallida_reabre_el_circuito PASSED   [ 83%]
+test_circuit_breaker.py::test_exito_reinicia_contador PASSED             [100%]
+
+============================== 6 passed in 0.09s ==============================
+ 
+
+>>> prueba_funcional.py
+[OK] Admin ajusta stock por conteo físico | esperado: 200 | obtenido: 200
+[OK] Listar inventario | esperado: 15 productos desde NUBE | obtenido: 15 productos desde NUBE
+[OK] Cajero registra una venta de 3 unidades | esperado: 201 en NUBE | obtenido: 201 en NUBE
+[OK] El stock en la nube se descuenta | esperado: 97 | obtenido: 97
+[OK] Venta con ítems repetidos se agrupa | esperado: total 30000.00 | obtenido: 30000.00
+[OK] Venta sin stock suficiente es rechazada | esperado: 409 | obtenido: 409
+[OK] Idempotencia: reenviar la misma venta no la duplica | esperado: 1 venta, 2ª respuesta duplicada=True | obtenido: 1 venta, duplicada=True
+[OK] Admin cambia precio | esperado: 12500.00 | obtenido: 12500.00
+[OK] Integración: el cambio se replica al servidor LOCAL | esperado: < 5 s | obtenido: 0.62 s
+[OK] Integración: el notificador publica el cambio a Rappi/WooCommerce | esperado: < 5 s | obtenido: 0.05 s
+[OK] Seguridad: venta sin token | esperado: 401 | obtenido: 401
+[OK] Seguridad: token manipulado | esperado: 401 | obtenido: 401
+[OK] Autorización: cajero no puede cambiar precios | esperado: 403 | obtenido: 403
+[OK] Seguridad: login con clave incorrecta | esperado: 401 | obtenido: 401
+[OK] Validación: SKU con inyección SQL es rechazado | esperado: 422 | obtenido: 422
+[OK] Validación: cantidad negativa es rechazada | esperado: 422 | obtenido: 422
+[OK] Validación: precio no numérico es rechazado | esperado: 422 | obtenido: 422
+Resultado: 17/17 casos aprobados
+ 
+
+>>> prueba_concurrencia_rendimiento.py
+50 ventas simultáneas sobre stock=20 en 0.66 s -> 201:20 409:30 otros:0
+[OK] Concurrencia: exactamente 20 ventas exitosas | esperado: 20 | obtenido: 20
+[OK] Concurrencia: 30 ventas rechazadas por stock | esperado: 30 | obtenido: 30
+[OK] Concurrencia: el stock final no es negativo | esperado: 0 | obtenido: 0
+Lectura  (GET /api/productos): {'solicitudes': 300, 'concurrencia': 10, 'exito_%': 100.0, 'p50_ms': 69.2, 'p95_ms': 92.0, 'max_ms': 140.1, 'throughput_rps': 139.4}
+Escritura (POST /api/ventas):  {'solicitudes': 200, 'concurrencia': 10, 'exito_%': 100.0, 'p50_ms': 130.6, 'p95_ms': 163.0, 'max_ms': 198.5, 'throughput_rps': 75.3}
+[OK] Rendimiento: p95 de consulta de inventario < 500 ms | esperado: < 500 ms | obtenido: 92.0 ms
+[OK] Rendimiento: p95 de registro de venta < 1000 ms | esperado: < 1000 ms | obtenido: 163.0 ms
+[OK] Rendimiento: 100 % de solicitudes exitosas | esperado: 100 % | obtenido: 100.0 % / 100.0 %
+Resultado: 6/6 casos aprobados
+ 
+
+>>> prueba_tolerancia_fallos.py
+--- A. Tienda sin internet: provocando la falla
+[OK] A. Tienda sin internet: primera venta tras la falla se atiende en LOCAL | esperado: 201 LOCAL | obtenido: 201 LOCAL (3.86 s)
+[OK] A. Tienda sin internet: cambio de precio sin conexión con la nube | esperado: 200 LOCAL | obtenido: 200 LOCAL
+[OK] A. Tienda sin internet: circuit breaker abierto y operaciones en cola | esperado: ABIERTO, 6 pendientes | obtenido: ABIERTO, 6 pendientes
+[OK] A. Tienda sin internet: ventas en modo respaldo con baja latencia (breaker abierto) | esperado: < 300 ms | obtenido: 37 ms promedio
+--- A. Tienda sin internet: restaurando el servicio
+[OK] A. Tienda sin internet: sincronización automática al recuperar la conexión | esperado: 0 pendientes | obtenido: 0 pendientes en 4.3 s
+Tiempo total de la falla: 17.8 s
+[OK] A. Tienda sin internet: las 5 ventas offline existen en la nube sin duplicados | esperado: 5 | obtenido: 5
+[OK] A. Tienda sin internet: stock y precio del POS prevalecen en la nube | esperado: stock 95, precio 11000.00 | obtenido: stock 95, precio 11000.00
+[OK] A. Tienda sin internet: Rappi/WooCommerce siguieron vendiendo en la nube durante el corte | esperado: > 0 ventas | obtenido: 3 ventas
+[OK] A. Tienda sin internet: consistencia final NUBE == LOCAL (15 productos) | esperado: idénticos | obtenido: idénticos en 2.0 s
+--- B. Caída del VPS: provocando la falla
+[OK] B. Caída del VPS: primera venta tras la falla se atiende en LOCAL | esperado: 201 LOCAL | obtenido: 201 LOCAL (3.84 s)
+[OK] B. Caída del VPS: cambio de precio sin conexión con la nube | esperado: 200 LOCAL | obtenido: 200 LOCAL
+[OK] B. Caída del VPS: circuit breaker abierto y operaciones en cola | esperado: ABIERTO, 6 pendientes | obtenido: ABIERTO, 6 pendientes
+[OK] B. Caída del VPS: ventas en modo respaldo con baja latencia (breaker abierto) | esperado: < 300 ms | obtenido: 28 ms promedio
+--- B. Caída del VPS: restaurando el servicio
+[OK] B. Caída del VPS: sincronización automática al recuperar la conexión | esperado: 0 pendientes | obtenido: 0 pendientes en 4.8 s
+Tiempo total de la falla: 23.4 s
+[OK] B. Caída del VPS: las 5 ventas offline existen en la nube sin duplicados | esperado: 5 | obtenido: 5
+[OK] B. Caída del VPS: stock y precio del POS prevalecen en la nube | esperado: stock 95, precio 11000.00 | obtenido: stock 95, precio 11000.00
+[OK] B. Caída del VPS: consistencia final NUBE == LOCAL (15 productos) | esperado: idénticos | obtenido: idénticos en 0.8 s
+[OK] C. Ambos nodos caídos: error controlado | esperado: 503 en < 10 s | obtenido: 503 en 7.4 s
+[OK] C. Recuperación tras reiniciar ambos nodos | esperado: nodo activo NUBE | obtenido: NUBE
+Resultado: 19/19 casos aprobados
+ 
+
+RESUMEN
+  OK    test_circuit_breaker.py
+  OK    prueba_funcional.py
+  OK    prueba_concurrencia_rendimiento.py
+  OK    prueba_tolerancia_fallos.py

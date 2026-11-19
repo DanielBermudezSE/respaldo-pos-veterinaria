@@ -1,0 +1,40 @@
+2026-11-18 21:44:43,501 INFO sync: Réplica NUBE->LOCAL: 2 productos actualizados
+2026-11-18 21:44:45,507 INFO sync: [SYNC] Sin conexión con la NUBE (OperationalError). Reintentando con backoff.
+2026-11-18 21:44:45,517 WARNING sync: Nube no disponible, próximo intento en 4s
+2026-11-18 21:44:51,322 WARNING sync: Nube no disponible, próximo intento en 8s
+2026-11-18 21:44:59,328 WARNING sync: Nube no disponible, próximo intento en 8s
+2026-11-18 21:45:07,387 INFO sync: [SYNC] Sincronizadas 6 operaciones locales hacia la NUBE
+2026-11-18 21:45:07,394 INFO sync: [SYNC] Conexión con la NUBE restablecida
+2026-11-18 21:45:09,422 INFO sync: Réplica NUBE->LOCAL: 3 productos actualizados
+2026-11-18 21:45:13,226 INFO sync: [SYNC] Sin conexión con la NUBE (OperationalError). Reintentando con backoff.
+2026-11-18 21:45:15,031 WARNING sync: No se pudo escribir en bitácora: (2003, "Can't connect to MySQL server on '172.20.0.2' (timed out)")
+2026-11-18 21:45:16,835 WARNING sync: Nube no disponible, próximo intento en 4s
+2026-11-18 21:45:20,853 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:20,854 INFO sync: [SYNC] Conexión con la NUBE restablecida
+2026-11-18 21:45:22,876 INFO sync: Réplica NUBE->LOCAL: 2 productos actualizados
+2026-11-18 21:45:24,894 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:26,911 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:28,931 INFO sync: Réplica NUBE->LOCAL: 2 productos actualizados
+2026-11-18 21:45:30,946 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:32,963 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:34,981 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:36,998 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:39,013 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:41,033 INFO sync: Réplica NUBE->LOCAL: 2 productos actualizados
+2026-11-18 21:45:43,051 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:45,067 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:47,083 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:49,122 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:51,139 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:45:53,161 INFO sync: Réplica NUBE->LOCAL: 2 productos actualizados
+2026-11-18 21:45:55,179 INFO sync: Réplica NUBE->LOCAL: 2 productos actualizados
+2026-11-18 21:45:57,199 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:46:01,014 INFO sync: [SYNC] Sin conexión con la NUBE (OperationalError). Reintentando con backoff.
+2026-11-18 21:46:01,026 WARNING sync: Nube no disponible, próximo intento en 4s
+2026-11-18 21:46:06,834 WARNING sync: Nube no disponible, próximo intento en 8s
+2026-11-18 21:46:14,879 INFO sync: [SYNC] Sincronizadas 3 operaciones locales hacia la NUBE
+2026-11-18 21:46:14,888 INFO sync: [SYNC] Conexión con la NUBE restablecida
+2026-11-18 21:46:16,925 INFO sync: Réplica NUBE->LOCAL: 7 productos actualizados
+2026-11-18 21:46:18,944 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:46:20,959 INFO sync: Réplica NUBE->LOCAL: 1 productos actualizados
+2026-11-18 21:46:22,977 INFO sync: Réplica NUBE->LOCAL: 2 productos actualizados

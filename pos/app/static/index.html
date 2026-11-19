@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POS Veterinaria · Respaldo distribuido</title>
+<style>
+  :root{--bg:#f4f6f8;--card:#fff;--txt:#1d2733;--sub:#5f6b7a;--line:#e3e7ec;--nube:#1d6fd8;--local:#d97706;--ok:#15803d;--err:#b91c1c;--warn:#b45309}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Segoe UI,system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 24px;background:#0f1b2a;color:#fff;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  header small{color:#9fb0c3}
+  .badges{display:flex;gap:10px;flex-wrap:wrap}
+  .badge{padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;background:#22324a}
+  .badge.nube{background:var(--nube)} .badge.local{background:var(--local)} .badge.err{background:var(--err)}
+  .badge.ok{background:var(--ok)} .badge.warn{background:var(--warn)}
+  main{display:grid;grid-template-columns:2fr 1fr;gap:16px;padding:16px 24px}
+  @media (max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .card h2{font-size:15px;margin:0 0 10px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}
+  th{color:var(--sub);font-weight:600}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  button{border:0;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;background:#e8eef6;color:#14304f}
+  button.pri{background:var(--nube);color:#fff}
+  input{padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px}
+  input.cant{width:52px}
+  .log{font-family:Consolas,monospace;font-size:12px;max-height:260px;overflow:auto}
+  .log div{padding:4px 0;border-bottom:1px dashed var(--line)}
+  .ALERTA{color:var(--warn)} .ERROR{color:var(--err)}
+  .flash{transition:background 1s} .flash.on{background:#fff6d6}
+  #login{max-width:340px;margin:60px auto}
+  #login input{width:100%;margin-bottom:8px}
+  .msg{font-size:13px;margin-top:8px;min-height:18px}
+  .side{display:flex;flex-direction:column;gap:16px}
+  .muted{color:var(--sub);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🐾 POS Veterinaria</h1><small>Sistema de respaldo distribuido · Nube (VPS) ⇄ Servidor local</small></div>
+  <div class="badges">
+    <span id="b-nodo" class="badge">Nodo: …</span>
+    <span id="b-nube" class="badge">Nube: …</span>
+    <span id="b-local" class="badge">Local: …</span>
+    <span id="b-cb" class="badge">Circuit breaker: …</span>
+    <span id="b-pend" class="badge">Pendientes: …</span>
+    <span id="b-user" class="badge"></span>
+  </div>
+</header>
+
+<section id="login" class="card" hidden>
+  <h2>Iniciar sesión</h2>
+  <input id="u" placeholder="Usuario" autocomplete="username">
+  <input id="p" placeholder="Clave" type="password" autocomplete="current-password">
+  <button class="pri" onclick="login()">Entrar</button>
+  <div id="lmsg" class="msg"></div>
+</section>
+
+<main id="app" hidden>
+  <div class="card">
+    <h2>Inventario <span id="origen" class="muted"></span></h2>
+    <table>
+      <thead><tr><th>SKU</th><th>Producto</th><th class="num">Precio</th><th class="num">Stock</th><th>Vender</th><th>Precio nuevo</th></tr></thead>
+      <tbody id="tabla"></tbody>
+    </table>
+    <div id="msg" class="msg"></div>
+  </div>
+  <div class="side">
+    <div class="card"><h2>Bitácora del sistema distribuido</h2><div id="eventos" class="log"></div></div>
+    <div class="card"><h2>Canales en la nube (Rappi · WooCommerce)</h2><div id="canales" class="log"></div></div>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let token = null, rol = null, usuario = null;
+try { token = sessionStorage.getItem('token'); rol = sessionStorage.getItem('rol'); usuario = sessionStorage.getItem('usuario'); } catch (e) {}
+const fmt = n => '$' + Number(n).toLocaleString('es-CO', {maximumFractionDigits: 0});
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let prevStock = {};
+
+function vista() {
+  $('login').hidden = !!token; $('app').hidden = !token;
+  $('b-user').textContent = token ? `👤 ${usuario} (${rol})  ·  salir` : '';
+  $('b-user').style.cursor = 'pointer'; $('b-user').onclick = salir;
+}
+async function login() {
+  const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({usuario: $('u').value, clave: $('p').value})});
+  const d = await r.json();
+  if (!r.ok) { $('lmsg').textContent = d.detail || 'Error'; return; }
+  token = d.token; rol = d.rol; usuario = d.usuario;
+  try { sessionStorage.setItem('token', token); sessionStorage.setItem('rol', rol); sessionStorage.setItem('usuario', usuario); } catch (e) {}
+  vista(); refrescar();
+}
+function salir() { token = null; try { sessionStorage.clear(); } catch (e) {} vista(); }
+
+async function api(metodo, url, cuerpo) {
+  const r = await fetch(url, {method: metodo, headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + token},
+    body: cuerpo ? JSON.stringify(cuerpo) : undefined});
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401) salir();
+  return {ok: r.ok, status: r.status, d};
+}
+function mensaje(t, err) { $('msg').textContent = t; $('msg').style.color = err ? 'var(--err)' : 'var(--ok)'; }
+
+async function vender(sku) {
+  const cant = parseInt($('c-' + sku).value || '1', 10);
+  const t0 = performance.now();
+  const r = await api('POST', '/api/ventas', {items: [{sku, cantidad: cant}]});
+  const ms = Math.round(performance.now() - t0);
+  if (r.ok) mensaje(`✔ Venta ${r.d.venta_id.slice(0,8)} registrada en ${r.d.nodo} · total ${fmt(r.d.total)} · ${ms} ms`);
+  else mensaje(`✖ ${r.d.detail ? (typeof r.d.detail === 'string' ? r.d.detail : 'Datos inválidos') : r.status}`, true);
+  refrescar();
+}
+async function precio(sku) {
+  const v = $('p-' + sku).value;
+  if (!v) return;
+  const r = await api('PUT', `/api/productos/${sku}/precio`, {precio: v});
+  if (r.ok) mensaje(`✔ Precio de ${sku}: ${fmt(r.d.precio_anterior)} → ${fmt(r.d.precio)} (guardado en ${r.d.nodo})`);
+  else mensaje(`✖ ${typeof r.d.detail === 'string' ? r.d.detail : 'Datos inválidos'}`, true);
+  $('p-' + sku).value = ''; refrescar();
+}
+
+async function refrescar() {
+  if (!token) return;
+  try {
+    const [e, p, ev, ca] = await Promise.all([
+      fetch('/api/estado').then(r => r.json()), fetch('/api/productos').then(r => r.json()),
+      fetch('/api/eventos').then(r => r.json()), fetch('/api/canales').then(r => r.json())]);
+    $('b-nodo').textContent = e.nodo_activo === 'NUBE' ? '☁ Nodo activo: NUBE' : '🏪 Nodo activo: LOCAL';
+    $('b-nodo').className = 'badge ' + (e.nodo_activo === 'NUBE' ? 'nube' : 'local');
+    $('b-nube').textContent = 'Nube: ' + (e.nube_disponible ? 'en línea' : 'sin conexión');
+    $('b-nube').className = 'badge ' + (e.nube_disponible ? 'ok' : 'err');
+    $('b-local').textContent = 'Local: ' + (e.local_disponible ? 'en línea' : 'caído');
+    $('b-local').className = 'badge ' + (e.local_disponible ? 'ok' : 'err');
+    $('b-cb').textContent = 'Circuit breaker: ' + e.circuit_breaker;
+    $('b-cb').className = 'badge ' + (e.circuit_breaker === 'CERRADO' ? 'ok' : 'warn');
+    $('b-pend').textContent = 'Pendientes por sincronizar: ' + e.pendientes_sincronizar;
+    $('b-pend').className = 'badge ' + (e.pendientes_sincronizar > 0 ? 'warn' : 'ok');
+    $('origen').textContent = `· leído desde ${p.nodo}`;
+    const admin = rol === 'admin';
+    const filas = p.productos.map(x => {
+      const cambio = prevStock[x.sku] !== undefined && prevStock[x.sku] !== x.stock;
+      return `<tr class="flash ${cambio ? 'on' : ''}"><td>${esc(x.sku)}</td><td>${esc(x.nombre)}</td>
+        <td class="num">${fmt(x.precio)}</td><td class="num">${x.stock}</td>
+        <td><input class="cant" id="c-${x.sku}" type="number" min="1" value="1"> <button class="pri" onclick="vender('${x.sku}')">Vender</button></td>
+        <td>${admin ? `<input id="p-${x.sku}" type="number" min="1" style="width:90px"> <button onclick="precio('${x.sku}')">Guardar</button>` : '<span class="muted">solo admin</span>'}</td></tr>`;
+    });
+    // conservar lo que el usuario está escribiendo
+    const activo = document.activeElement && document.activeElement.id;
+    const valores = {}; document.querySelectorAll('#tabla input').forEach(i => valores[i.id] = i.value);
+    $('tabla').innerHTML = filas.join('');
+    Object.entries(valores).forEach(([k, v]) => { if ($(k)) $(k).value = v; });
+    if (activo && $(activo)) $(activo).focus();
+    setTimeout(() => document.querySelectorAll('.flash.on').forEach(t => t.classList.remove('on')), 50);
+    prevStock = Object.fromEntries(p.productos.map(x => [x.sku, x.stock]));
+    $('eventos').innerHTML = ev.map(x => `<div class="${x.nivel}">${esc(String(x.creado_en).slice(11,19))} [${esc(x.servicio)}] ${esc(x.mensaje)}</div>`).join('');
+    $('canales').innerHTML = ca.disponible
+      ? ca.ventas.map(v => `<div>${esc(String(v.creado_en).slice(11,19))} 🛒 ${v.canal} vendió ${v.cantidad} × ${esc(v.sku)}</div>`).join('') +
+        ca.notificaciones.slice(0,4).map(n => `<div class="muted">📤 ${esc(n.destino)} ← ${esc(n.sku)} stock ${n.stock}</div>`).join('')
+      : '<div class="ERROR">Sin conexión con el VPS: los canales en línea no son visibles desde la tienda.</div>';
+  } catch (err) { console.error(err); }
+}
+vista(); refrescar(); setInterval(refrescar, 2000);
+$('p').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+</script>
+</body>
+</html>

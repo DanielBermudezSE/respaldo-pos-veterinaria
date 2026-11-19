@@ -1,0 +1,15 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.3, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\d4nie\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\d4nie\AppData\Local\Claude-Data\claude_pzs8sxrjxfjjc\scratch-workspaces\613fab95-97d4-46aa-83c1-72ca1798590e\c7a3555a-07b6-4d2d-85f3-2c004ba77b12\scratch-2026-11-19-0b7b19\respaldo-pos-veterinaria\pruebas
+plugins: anyio-4.8.0
+collecting ... collected 6 items
+
+test_circuit_breaker.py::test_inicia_cerrado_y_permite PASSED            [ 16%]
+test_circuit_breaker.py::test_se_abre_tras_umbral_de_fallos PASSED       [ 33%]
+test_circuit_breaker.py::test_semiabierto_permite_una_sola_prueba PASSED [ 50%]
+test_circuit_breaker.py::test_prueba_exitosa_cierra_el_circuito PASSED   [ 66%]
+test_circuit_breaker.py::test_prueba_fallida_reabre_el_circuito PASSED   [ 83%]
+test_circuit_breaker.py::test_exito_reinicia_contador PASSED             [100%]
+
+============================== 6 passed in 0.09s ==============================
