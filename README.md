@@ -3,6 +3,8 @@
 Proyecto de la asignatura **Sistemas Distribuidos**, Universidad Manuela Beltrán.
 Autor: Daniel Stiven Bermúdez Pabón · Docente: Ing. Juan José Osorio Tabares
 
+🎥 **Video de sustentación:** https://youtu.be/v_4EsIae0M0
+
 El inventario y los precios de la veterinaria viven en una base de datos MariaDB alojada en un VPS (Vultr). Esa base alimenta tres canales: la tienda física (POS), la tienda web (WooCommerce) y Rappi. Si el VPS se cae o la tienda pierde internet, el punto de venta se detiene.
 
 Este proyecto agrega un **servidor de respaldo físico en la tienda**. El POS cambia a ese servidor de forma automática, sigue vendiendo y, cuando vuelve la conexión, **sincroniza todo con la nube sin duplicar ventas**.
