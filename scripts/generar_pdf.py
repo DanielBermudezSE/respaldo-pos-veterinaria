@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 ap = argparse.ArgumentParser()
-ap.add_argument("--nombre", default="[NOMBRE DEL ESTUDIANTE]")
+ap.add_argument("--nombre", default="Daniel Stiven Bermúdez Pabón")
 ap.add_argument("--repo", default="https://github.com/DanielBermudezSE/respaldo-pos-veterinaria")
 a = ap.parse_args()
 

@@ -1,6 +1,7 @@
 # Servidor de respaldo distribuido para el POS de una veterinaria
 
 Proyecto de la asignatura **Sistemas Distribuidos**, Universidad Manuela Beltrán.
+Autor: Daniel Stiven Bermúdez Pabón · Docente: Ing. Juan José Osorio Tabares
 
 El inventario y los precios de la veterinaria viven en una base de datos MariaDB alojada en un VPS (Vultr). Esa base alimenta tres canales: la tienda física (POS), la tienda web (WooCommerce) y Rappi. Si el VPS se cae o la tienda pierde internet, el punto de venta se detiene.
 
